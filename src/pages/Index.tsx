@@ -3,9 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { FileText, Users, ArrowUp, ArrowDown, BookOpen, Activity, User, UserCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { apiRequest } from '@/services/api';
+import { dashboardService } from '@/services/dashboardService';
 import { useAuth } from '@/contexts/AuthContext';
 
+// 定义仪表盘数据接口，与后端响应匹配
 interface DashboardData {
   questionStats: {
     totalQuestions: number;
@@ -78,12 +79,15 @@ const Dashboard = () => {
   const { user } = useAuth();
   
   const isAdmin = user?.userType === 2; // 2 = Admin
+  const isTeacher = user?.userType === 1; // 1 = Teacher
+  const isStudent = user?.userType === 0; // 0 = Student
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
-        const data = await apiRequest('/Dashboard');
+        // 直接使用原始API响应，不进行转换
+        const data = await dashboardService.getDashboardData();
         setDashboardData(data);
         setError(null);
       } catch (err) {
@@ -132,72 +136,125 @@ const Dashboard = () => {
             <div className="grid gap-4 md:grid-cols-2">
               <DashboardCard
                 title="简历统计"
-                value={dashboardData.resumeStats.totalResumes}
-                description={`${dashboardData.resumeStats.pendingResumes} 个待审核`}
+                value={isStudent 
+                  ? (dashboardData.resumeStats.pendingResumes + dashboardData.resumeStats.approvedResumes + dashboardData.resumeStats.rejectedResumes) 
+                  : dashboardData.resumeStats.totalResumes}
+                description={isStudent 
+                  ? "您提交的简历数量" 
+                  : `${dashboardData.resumeStats.pendingResumes} 个待审核`}
                 icon={FileText}
-                change={{ 
-                  value: dashboardData.resumeStats.totalResumes > 0 
-                    ? Math.round((dashboardData.resumeStats.approvedResumes / dashboardData.resumeStats.totalResumes) * 100) 
-                    : 0, 
-                  positive: true 
-                }}
+                change={isStudent 
+                  ? undefined
+                  : { 
+                      value: dashboardData.resumeStats.totalResumes > 0 
+                        ? Math.round((dashboardData.resumeStats.approvedResumes / dashboardData.resumeStats.totalResumes) * 100) 
+                        : 0, 
+                      positive: true 
+                    }
+                }
                 link="/resume"
               />
               <DashboardCard
                 title="面试问题"
-                value={dashboardData.questionStats.totalQuestions}
-                description={`${dashboardData.questionStats.personalQuestions} 个个人问题`}
+                value={isStudent 
+                  ? dashboardData.questionStats.personalQuestions 
+                  : dashboardData.questionStats.totalQuestions}
+                description={isStudent 
+                  ? "您提交的问题" 
+                  : `${dashboardData.questionStats.personalQuestions} 个个人问题`}
                 icon={Users}
-                change={{ 
-                  value: dashboardData.questionStats.totalQuestions > 0
-                    ? Math.round((dashboardData.questionStats.companyQuestions / dashboardData.questionStats.totalQuestions) * 100)
-                    : 0, 
-                  positive: true 
-                }}
+                change={isStudent 
+                  ? undefined
+                  : { 
+                      value: dashboardData.questionStats.totalQuestions > 0
+                        ? Math.round((dashboardData.questionStats.companyQuestions / dashboardData.questionStats.totalQuestions) * 100)
+                        : 0, 
+                      positive: true 
+                    }
+                }
                 link="/interview"
               />
             </div>
             
-            {/* 详细统计卡片 - 4列布局 */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        
-              <DashboardCard
-                title="已批准简历"
-                value={dashboardData.resumeStats.approvedResumes}
-                description={`共 ${dashboardData.resumeStats.totalResumes} 份简历`}
-                icon={FileText}
-                change={{ 
-                  value: dashboardData.resumeStats.totalResumes > 0 
-                    ? Math.round((dashboardData.resumeStats.approvedResumes / dashboardData.resumeStats.totalResumes) * 100) 
-                    : 0, 
-                  positive: true 
-                }}
-                link="/resume"
-                className="md:col-span-1"
-              />
-              <DashboardCard
-                title="已拒绝简历"
-                value={dashboardData.resumeStats.rejectedResumes}
-                description={`共 ${dashboardData.resumeStats.totalResumes} 份简历`}
-                icon={FileText}
-                change={{ 
-                  value: dashboardData.resumeStats.totalResumes > 0 
-                    ? Math.round((dashboardData.resumeStats.rejectedResumes / dashboardData.resumeStats.totalResumes) * 100) 
-                    : 0, 
-                  positive: false 
-                }}
-                link="/resume"
-                className="md:col-span-1"
-              />
-              <DashboardCard
-                title="公司问题"
-                value={dashboardData.questionStats.companyQuestions}
-                description={`共 ${dashboardData.questionStats.totalQuestions} 个问题`}
-                icon={Activity}
-                link="/interview"
-                className="md:col-span-1"
-              />
-            </div>
+            {/* 详细统计卡片 - 仅对非学生用户显示 */}
+            {!isStudent && (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <DashboardCard
+                  title="已审阅简历"
+                  value={dashboardData.resumeStats.approvedResumes}
+                  description={`共 ${dashboardData.resumeStats.totalResumes} 份简历`}
+                  icon={FileText}
+                  change={{ 
+                    value: dashboardData.resumeStats.totalResumes > 0 
+                      ? Math.round((dashboardData.resumeStats.approvedResumes / dashboardData.resumeStats.totalResumes) * 100) 
+                      : 0, 
+                    positive: true 
+                  }}
+                  link="/resume"
+                  className="md:col-span-1"
+                />
+                <DashboardCard
+                  title="已批准简历"
+                  value={dashboardData.resumeStats.rejectedResumes}
+                  description={`共 ${dashboardData.resumeStats.totalResumes} 份简历`}
+                  icon={FileText}
+                  change={{ 
+                    value: dashboardData.resumeStats.totalResumes > 0 
+                      ? Math.round((dashboardData.resumeStats.rejectedResumes / dashboardData.resumeStats.totalResumes) * 100) 
+                      : 0, 
+                    positive: false 
+                  }}
+                  link="/resume"
+                  className="md:col-span-1"
+                />
+                <DashboardCard
+                  title="公司问题"
+                  value={dashboardData.questionStats.companyQuestions}
+                  description={`共 ${dashboardData.questionStats.totalQuestions} 个问题`}
+                  icon={Activity}
+                  link="/interview"
+                  className="md:col-span-1"
+                />
+                <DashboardCard
+                  title="活跃案例"
+                  value={dashboardData.caseStats.activeCases}
+                  description="当前进行中的案例"
+                  icon={BookOpen}
+                  link="/interview"
+                  className="md:col-span-1"
+                />
+              </div>
+            )}
+            
+            {/* 学生用户专属卡片 */}
+            {isStudent&&false && (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <DashboardCard
+                  title="待审核简历"
+                  value={dashboardData.resumeStats.pendingResumes}
+                  description="等待老师审核的简历"
+                  icon={FileText}
+                  link="/resume"
+                  className="md:col-span-1"
+                />
+                <DashboardCard
+                  title="已批准简历"
+                  value={dashboardData.resumeStats.approvedResumes}
+                  description="已通过审核的简历"
+                  icon={FileText}
+                  link="/resume"
+                  className="md:col-span-1"
+                />
+                <DashboardCard
+                  title="待审核问题"
+                  value={dashboardData.questionStats.personalQuestions} // 这里需要后端提供更精确的数据
+                  description="您提交的面试问题"
+                  icon={Users}
+                  link="/interview"
+                  className="md:col-span-1"
+                />
+              </div>
+            )}
             
             {/* 管理员专属统计 */}
             {isAdmin && dashboardData.userStats && (
