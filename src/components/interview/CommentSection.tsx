@@ -19,6 +19,7 @@ interface CommentSectionProps {
   onAddComment?: (comment: string) => void;
   onDeleteComment?: (commentId: string) => Promise<void>; // 添加删除评论的回调
   isLoading?: boolean;
+  questionStatus?: number; // 添加问题状态参数
 }
 
 const formatDate = (date: Date) => {
@@ -40,7 +41,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   comments,
   onAddComment,
   onDeleteComment,
-  isLoading = false
+  isLoading = false,
+  questionStatus = 0 // 默认为待审核状态
 }) => {
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -51,6 +53,15 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   const { user } = useAuth();
   const currentUserType = user?.userType || 0;
   const currentUsername = user?.username || '';
+
+  // 判断当前用户是否可以添加评论
+  // 如果是学生(type=0)且问题已批准(status=1)或已拒绝(status=2)，则不能修改答案
+  const canAddComment = (): boolean => {
+    if (currentUserType === 0 && (questionStatus === 1 || questionStatus === 2)) {
+      return false;
+    }
+    return true;
+  };
 
   const handleAddComment = async () => {
     if (commentText.trim() && onAddComment) {
@@ -189,15 +200,18 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
           </div>
         </div>
       ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mt-2"
-          onClick={() => setShowCommentForm(true)}
-        >
-          <Send size={14} className="mr-1" />
-          修改答案
-        </Button>
+        // 根据用户类型和问题状态决定是否显示"修改答案"按钮
+        canAddComment() && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2"
+            onClick={() => setShowCommentForm(true)}
+          >
+            <Send size={14} className="mr-1" />
+            修改答案
+          </Button>
+        )
       )}
     </>
   );
