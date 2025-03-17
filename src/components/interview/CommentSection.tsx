@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { User, Send, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
+import { debounce } from 'lodash'; // 需要安装lodash库
 
 interface Comment {
   id: string;
@@ -12,12 +13,13 @@ interface Comment {
   createdBy: string;
   createdAt: Date;
   userType?: number; // 添加用户类型字段，用于区分评论者身份
+  type?: number;     // 修订类型：0=Answer, 1=TeacherEdit, 2=TeacherComment
 }
 
 interface CommentSectionProps {
   comments: Comment[];
-  onAddComment?: (comment: string) => void;
-  onDeleteComment?: (commentId: string) => Promise<void>; // 添加删除评论的回调
+  onAddComment?: (comment: string) => Promise<void> | void;  // 修改类型，允许返回Promise或void
+  onDeleteComment?: (commentId: string) => Promise<void>;
   isLoading?: boolean;
   questionStatus?: number; // 添加问题状态参数
 }
@@ -63,22 +65,31 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     return true;
   };
 
-  const handleAddComment = async () => {
-    if (commentText.trim() && onAddComment) {
-      setIsSubmitting(true);
-      try {
-        await onAddComment(commentText);
-        setCommentText('');
-        setShowCommentForm(false);
-      } finally {
-        setIsSubmitting(false);
+  // 创建防抖的提交处理函数
+  const debouncedSubmit = useCallback(
+    debounce(async () => {
+      if (commentText.trim() && onAddComment && !isSubmitting) {
+        try {
+          setIsSubmitting(true);
+          await onAddComment(commentText);
+          setCommentText('');
+          setShowCommentForm(false);
+        } finally {
+          setIsSubmitting(false);
+        }
       }
-    }
+    }, 500),
+    [commentText, onAddComment, isSubmitting]
+  );
+
+  const handleAddComment = () => {
+    if (isSubmitting) return; // 防止重复提交
+    debouncedSubmit();
   };
 
   // 处理删除评论
   const handleDeleteComment = async (commentId: string) => {
-    if (!onDeleteComment) return;
+    if (!onDeleteComment || isDeleting) return;
     
     try {
       setIsDeleting(commentId);
@@ -105,6 +116,13 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     return isTeacherOrAdmin(currentUserType) && comment.createdBy === currentUsername;
   };
 
+  // 清除防抖函数
+  useEffect(() => {
+    return () => {
+      debouncedSubmit.cancel();
+    };
+  }, [debouncedSubmit]);
+
   return (
     <>
       {isLoading ? (
@@ -127,6 +145,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                   <span className="text-xs text-muted-foreground">
                     {formatDate(comment.createdAt)}
                   </span>
+                
+             
                   
                   {/* 添加删除按钮 */}
                   {canDeleteComment(comment) && (
@@ -145,12 +165,14 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                     </Button>
                   )}
                 </div>
-                {/* 根据用户类型设置不同的背景色 */}
+                {/* 根据用户类型和评论类型设置不同的背景色 */}
                 <div 
                   className={`rounded-lg p-3 mt-1 ${
                     // 老师或管理员的评论使用特殊背景色
                     isTeacherOrAdmin(comment.userType) 
-                      ? 'bg-blue-50 border border-blue-200' 
+                      ? comment.type === 2 
+                        ? 'bg-purple-50 border border-purple-200' // 评论类型
+                        : 'bg-blue-50 border border-blue-200'     // 答案编辑类型
                       : 'bg-muted/50'
                   }`}
                 >

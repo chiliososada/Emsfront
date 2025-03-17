@@ -29,6 +29,7 @@ interface Comment {
   createdBy: string;
   createdAt: Date;
   userType?: number; // 添加用户类型以区分评论者身份
+  type?: number;     // 修订类型：0=Answer, 1=TeacherEdit, 2=TeacherComment
 }
 
 interface QuestionCardProps {
@@ -43,6 +44,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoadedRevisions, setHasLoadedRevisions] = useState(false);
   const [firstComment, setFirstComment] = useState<Comment | null>(null);
+  const [isCommenting, setIsCommenting] = useState(false); // 新增：防止重复提交的状态锁
   
   // 获取当前用户信息
   const { user } = useAuth();
@@ -60,6 +62,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
 
   // 从后端加载问题的评论/修订
   const loadRevisions = async () => {
+    if (isLoading || hasLoadedRevisions) return; // 防止重复加载
+    
     try {
       setIsLoading(true);
       const questionId = parseInt(question.id);
@@ -77,16 +81,41 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
           content: revision.revisionText,
           createdBy: revision.username || "用户",
           createdAt: new Date(revision.createdAt+"Z"),
-          userType: revision.userType // 假设后端返回了用户类型
+          userType: revision.userType,
+          type: revision.type // 添加修订类型
         };
       });
       
-      // 如果有评论，则设置第一条评论
-      if (newComments.length > 0) {
-        setFirstComment(newComments[0]);
+      // 过滤掉TeacherEdit类型的重复评论内容
+      // 只保留每个用户的最新TeacherEdit类型评论，删除具有相同内容的旧评论
+      const filteredComments: Comment[] = [];
+      const contentMap = new Map<string, boolean>();
+      
+      // 按时间降序排序，确保最新的评论优先处理
+      const sortedComments = [...newComments].sort((a, b) => 
+        b.createdAt.getTime() - a.createdAt.getTime()
+      );
+      
+      for (const comment of sortedComments) {
+        // 如果是TeacherEdit类型(type === 1)的评论且内容已存在，跳过
+        if ((comment.type === 1) && contentMap.has(comment.content)) {
+          continue;
+        }
+        
+        // 记录评论内容
+        contentMap.set(comment.content, true);
+        filteredComments.push(comment);
+      }
+      
+      // 还原原始时间顺序（从旧到新）
+      filteredComments.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      
+      // 如果有评论，则设置第一条评论（内容上的第一条，而非时间上的第一条）
+      if (filteredComments.length > 0) {
+        setFirstComment(filteredComments[filteredComments.length - 1]);
       }
 
-      setComments(newComments);
+      setComments(filteredComments);
       setHasLoadedRevisions(true);
     } catch (error) {
       console.error('加载答案失败:', error);
@@ -100,10 +129,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
     loadRevisions();
   }, []);
 
-  // 修改QuestionCard.tsx中的handleAddComment方法
+  // 修改后的handleAddComment方法，添加防重复提交机制
   const handleAddComment = async (commentText: string) => {
-    if (!commentText.trim()) return;
-
+    if (!commentText.trim() || isCommenting) return; // 防止重复提交
+    
+    setIsCommenting(true); // 开始提交，锁定状态
+    
     try {
       const questionId = parseInt(question.id);
 
@@ -118,8 +149,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
         type: 1, // 改为TeacherEdit类型，这样会更新原始问题的答案
         comments: "答案"
       });
-
-      // 不再需要调用updateQuestion方法，避免重复创建修订
 
       // 创建新评论并更新状态
       const newComment: Comment = {
@@ -144,6 +173,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
       if (onStatusChange) {
         onStatusChange();
       }
+      
+      // 重置评论表单状态
+      setShowCommentForm(false);
     } catch (error) {
       console.error('添加答案失败:', error);
       toast({
@@ -151,6 +183,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
         description: "添加答案时发生错误，请重试。",
         variant: "destructive"
       });
+    } finally {
+      setIsCommenting(false); // 无论成功失败，都解锁状态
     }
   };
 
@@ -162,8 +196,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
         throw new Error("问题ID无效");
       }
 
-      // 调用API删除评论 - 假设有这样的方法
-      // 注意：这个API需要在后端实现
+      // 调用API删除评论
       await questionService.deleteRevision(questionId, parseInt(commentId));
 
       // 更新本地状态
@@ -246,23 +279,24 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
             </div>
           </div>
 
-          {expanded && (
+          {/* 优化后的条件渲染逻辑，确保同时只显示一个评论区 */}
+          {expanded ? (
             <CommentSection
               comments={comments}
               onAddComment={handleAddComment}
               onDeleteComment={handleDeleteComment}
               isLoading={isLoading}
-              questionStatus={question.status} // 传递问题状态
+              questionStatus={question.status}
             />
-          )}
-
-          {showCommentForm && !expanded && (
-            <CommentSection
-              comments={[]}
-              onAddComment={handleAddComment}
-              onDeleteComment={handleDeleteComment}
-              questionStatus={question.status} // 传递问题状态
-            />
+          ) : (
+            showCommentForm && (
+              <CommentSection
+                comments={[]}
+                onAddComment={handleAddComment}
+                onDeleteComment={handleDeleteComment}
+                questionStatus={question.status}
+              />
+            )
           )}
         </div>
       </CardContent>

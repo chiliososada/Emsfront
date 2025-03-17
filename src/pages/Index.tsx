@@ -216,9 +216,9 @@ const Dashboard = () => {
                   className="md:col-span-1"
                 />
                 <DashboardCard
-                  title="活跃案例"
+                  title="活跃案件"
                   value={dashboardData.caseStats.activeCases}
-                  description="当前进行中的案例"
+                  description="当前进行中的案件"
                   icon={BookOpen}
                   link="/interview"
                   className="md:col-span-1"

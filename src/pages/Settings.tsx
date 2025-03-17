@@ -34,7 +34,19 @@ const SettingsPage = () => {
       try {
         setIsLoading(true);
         const profileData = await profileService.getProfile();
+        
+        // 日期格式化处理
+        if (profileData.birthDate) {
+          // 将ISO日期字符串转换为YYYY-MM-DD格式
+          const date = new Date(profileData.birthDate);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          profileData.birthDate = `${year}-${month}-${day}`;
+        }
+        
         setUser(profileData);
+        console.log("原始出生日期:", profileData.birthDate); // 调试用
       } catch (error) {
         console.error('获取个人资料失败:', error);
         toast({

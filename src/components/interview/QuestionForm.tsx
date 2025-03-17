@@ -30,7 +30,7 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
   // 根据用户类型自动设置问题来源，不再需要用户选择
   const source = isTeacherOrAdmin ? 1 : 0; // 1 = Company, 0 = Personal
 
-  // 案例相关字段
+  // 案件相关字段
   const [caseName, setCaseName] = useState('');
   const [position, setPosition] = useState('');
 
@@ -51,7 +51,7 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
     setCaseContent('');
     setPosition('');
     
-    // 只有在学生模式下才重置案例名称
+    // 只有在学生模式下才重置案件名称
     if (!isTeacherOrAdmin) {
       setCaseName('');
     } else {
@@ -82,8 +82,8 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
 
     if (!isTeacherOrAdmin && !caseName.trim()) {
       toast({
-        title: "案例名称不能为空",
-        description: "请输入案例名称。",
+        title: "案件名称不能为空",
+        description: "请输入案件名称。",
         variant: "destructive",
       });
       return;
@@ -91,8 +91,8 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
     
     if (!isTeacherOrAdmin && !caseContent.trim()) {
       toast({
-        title: "案例内容不能为空",
-        description: "案例内容为必填项。",
+        title: "案件内容不能为空",
+        description: "案件内容为必填项。",
         variant: "destructive",
       });
       return;
@@ -101,7 +101,7 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
     try {
       setIsSubmitting(true);
       
-      // 创建案例
+      // 创建案件
       const caseRequest = {
         caseName: caseName || `面试问题集`,
         companyName: isTeacherOrAdmin ? 'toyousoft' : undefined,
@@ -178,7 +178,7 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {/* 首先显示关键字字段，确保宽度与其他字段一致 */}
           <div className="space-y-1.5">
-            <Label htmlFor="position">关键字（Java,JavaScript） *</Label>
+            <Label htmlFor="position">关键字（Java,JavaScript） <span className="text-red-500">*</span></Label>
             {availablePositions.length > 0 ? (
               <Select 
                 value={position} 
@@ -218,27 +218,27 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
             )}
           </div>
           
-          {/* 只对学生（userType=0）显示案例名称和案例内容字段 */}
+          {/* 只对学生（userType=0）显示案件名称和案件内容字段 */}
           {!isTeacherOrAdmin && (
             <>
               <div className="space-y-1.5">
-                <Label htmlFor="caseName">案例名称 *</Label>
+                <Label htmlFor="caseName">案件名称 <span className="text-red-500">*</span></Label>
                 <Input
                   id="caseName"
                   value={caseName}
                   onChange={(e) => setCaseName(e.target.value)}
-                  placeholder="输入案例名称"
+                  placeholder="输入案件名称"
                   required
                 />
               </div>
               
               <div className="space-y-1.5">
-                <Label htmlFor="caseContent">案例内容 *</Label>
+                <Label htmlFor="caseContent">案件内容 <span className="text-red-500">*</span></Label>
                 <Textarea
                   id="caseContent"
                   value={caseContent}
                   onChange={(e) => setCaseContent(e.target.value)}
-                  placeholder="输入案例内容"
+                  placeholder="输入案件内容"
                   required
                 />
               </div>
@@ -246,7 +246,7 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
           )}
         
           <div className="space-y-1.5">
-            <Label htmlFor="question">问题 *</Label>
+            <Label htmlFor="question">问题 <span className="text-red-500">*</span></Label>
             <Input
               id="question"
               value={question}
@@ -257,7 +257,7 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
           </div>
           
           <div className="space-y-1.5">
-            <Label htmlFor="answer">答案 *</Label>
+            <Label htmlFor="answer">答案<span className="text-red-500">*</span></Label>
             <Textarea
               id="answer"
               value={answer}
