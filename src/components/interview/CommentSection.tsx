@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { User, Send } from 'lucide-react';
+import { User, Send, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 interface Comment {
   id: string;
@@ -16,6 +17,7 @@ interface Comment {
 interface CommentSectionProps {
   comments: Comment[];
   onAddComment?: (comment: string) => void;
+  onDeleteComment?: (commentId: string) => Promise<void>; // 添加删除评论的回调
   isLoading?: boolean;
 }
 
@@ -37,14 +39,18 @@ const isTeacherOrAdmin = (userType?: number): boolean => {
 export const CommentSection: React.FC<CommentSectionProps> = ({
   comments,
   onAddComment,
+  onDeleteComment,
   isLoading = false
 }) => {
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   
   // 获取当前用户信息，用于后续判断
   const { user } = useAuth();
+  const currentUserType = user?.userType || 0;
+  const currentUsername = user?.username || '';
 
   const handleAddComment = async () => {
     if (commentText.trim() && onAddComment) {
@@ -57,6 +63,35 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         setIsSubmitting(false);
       }
     }
+  };
+
+  // 处理删除评论
+  const handleDeleteComment = async (commentId: string) => {
+    if (!onDeleteComment) return;
+    
+    try {
+      setIsDeleting(commentId);
+      await onDeleteComment(commentId);
+      toast({
+        title: "删除成功",
+        description: "评论已成功删除"
+      });
+    } catch (error) {
+      console.error('删除评论失败:', error);
+      toast({
+        title: "删除失败",
+        description: "删除评论时发生错误",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  // 检查用户是否可以删除评论
+  const canDeleteComment = (comment: Comment): boolean => {
+    // 只有教师或管理员可以删除自己的评论
+    return isTeacherOrAdmin(currentUserType) && comment.createdBy === currentUsername;
   };
 
   return (
@@ -81,6 +116,23 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                   <span className="text-xs text-muted-foreground">
                     {formatDate(comment.createdAt)}
                   </span>
+                  
+                  {/* 添加删除按钮 */}
+                  {canDeleteComment(comment) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 ml-auto"
+                      onClick={() => handleDeleteComment(comment.id)}
+                      disabled={isDeleting === comment.id}
+                    >
+                      {isDeleting === comment.id ? (
+                        <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                      ) : (
+                        <Trash2 size={14} className="text-red-500" />
+                      )}
+                    </Button>
+                  )}
                 </div>
                 {/* 根据用户类型设置不同的背景色 */}
                 <div 
@@ -130,7 +182,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
               ) : (
                 <>
                   <Send size={14} />
-                  添加答案
+                  修改答案
                 </>
               )}
             </Button>
@@ -144,7 +196,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
           onClick={() => setShowCommentForm(true)}
         >
           <Send size={14} className="mr-1" />
-          添加答案
+          修改答案
         </Button>
       )}
     </>

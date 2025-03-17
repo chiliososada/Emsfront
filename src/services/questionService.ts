@@ -63,9 +63,14 @@ export const questionService = {
     return apiRequest("/Question", "POST", question);
   },
   
-  updateQuestion: async (id: number, question: { questionText?: string, answer?: string }): Promise<{ message: string }> => {
-    return apiRequest(`/Question/${id}`, "PUT", question);
-  },
+ 
+updateQuestion: async (id: number, question: { 
+  questionText?: string, 
+  answer?: string,
+  skipRevisionCreation?: boolean 
+}): Promise<{ message: string }> => {
+  return apiRequest(`/Question/${id}`, "PUT", question);
+},
   
   deleteQuestion: async (id: number): Promise<{ message: string }> => {
     return apiRequest(`/Question/${id}`, "DELETE");
@@ -76,6 +81,12 @@ export const questionService = {
     revision: { revisionText: string, type: number, comments?: string }
   ): Promise<{ revisionId: number, message: string }> => {
     return apiRequest(`/Question/${questionId}/revisions`, "POST", revision);
+  },
+  
+  
+  // 新增：删除修订/评论的方法
+  deleteRevision: async (questionId: number, revisionId: number): Promise<{ message: string }> => {
+    return apiRequest(`/Question/${questionId}/revisions/${revisionId}`, "DELETE");
   },
   
   getRevisions: async (questionId: number): Promise<any[]> => {

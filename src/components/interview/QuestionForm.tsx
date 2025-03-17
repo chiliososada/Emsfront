@@ -73,8 +73,8 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
 
     if (!position.trim()) {
       toast({
-        title: "职位名称不能为空",
-        description: "职位名称是必填项。",
+        title: "关键字不能为空",
+        description: "关键字是必填项。",
         variant: "destructive",
       });
       return;
@@ -84,6 +84,15 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
       toast({
         title: "案例名称不能为空",
         description: "请输入案例名称。",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!isTeacherOrAdmin && !caseContent.trim()) {
+      toast({
+        title: "案例内容不能为空",
+        description: "案例内容为必填项。",
         variant: "destructive",
       });
       return;
@@ -167,70 +176,74 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
         </div>
         
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="caseName">案例名称 {!isTeacherOrAdmin && "*"}</Label>
+          {/* 首先显示关键字字段，确保宽度与其他字段一致 */}
+          <div className="space-y-1.5">
+            <Label htmlFor="position">关键字（Java,JavaScript） *</Label>
+            {availablePositions.length > 0 ? (
+              <Select 
+                value={position} 
+                onValueChange={setPosition}
+              >
+                <SelectTrigger id="position">
+                  <SelectValue placeholder="请输入关键字" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availablePositions.map((pos) => (
+                    <SelectItem key={pos} value={pos}>
+                      {pos}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="other">+ 添加新关键字</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
               <Input
-                id="caseName"
-                value={caseName}
-                onChange={(e) => setCaseName(e.target.value)}
-                placeholder="输入案例名称"
-                disabled={isTeacherOrAdmin} // 教师或管理员不可编辑
-                required={!isTeacherOrAdmin} // 学生必填
+                id="position"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                placeholder="请输入关键字"
+                required
               />
-            </div>
+            )}
             
-            <div className="space-y-1.5">
-              <Label htmlFor="position">关键字（Java,JavaScript） *</Label>
-              {availablePositions.length > 0 ? (
-                <Select 
-                  value={position} 
-                  onValueChange={setPosition}
-                >
-                  <SelectTrigger id="position">
-                    <SelectValue placeholder="选择职位名称" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availablePositions.map((pos) => (
-                      <SelectItem key={pos} value={pos}>
-                        {pos}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="other">+ 添加新职位</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  id="position"
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value)}
-                  placeholder="输入职位名称"
-                  required
-                />
-              )}
-              
-              {/* 如果选择"添加新职位"，则显示输入框 */}
-              {position === 'other' && (
-                <Input
-                  className="mt-2"
-                  value=""
-                  onChange={(e) => setPosition(e.target.value)}
-                  placeholder="输入新职位名称"
-                  required
-                />
-              )}
-            </div>
+            {/* 如果选择"添加新关键字"，则显示输入框 */}
+            {position === 'other' && (
+              <Input
+                className="mt-2"
+                value=""
+                onChange={(e) => setPosition(e.target.value)}
+                placeholder="请输入新关键字"
+                required
+              />
+            )}
           </div>
           
-          <div className="space-y-1.5">
-            <Label htmlFor="caseContent">案例内容</Label>
-            <Textarea
-              id="caseContent"
-              value={caseContent}
-              onChange={(e) => setCaseContent(e.target.value)}
-              placeholder="输入案例内容（可选）"
-            />
-          </div>
+          {/* 只对学生（userType=0）显示案例名称和案例内容字段 */}
+          {!isTeacherOrAdmin && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="caseName">案例名称 *</Label>
+                <Input
+                  id="caseName"
+                  value={caseName}
+                  onChange={(e) => setCaseName(e.target.value)}
+                  placeholder="输入案例名称"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-1.5">
+                <Label htmlFor="caseContent">案例内容 *</Label>
+                <Textarea
+                  id="caseContent"
+                  value={caseContent}
+                  onChange={(e) => setCaseContent(e.target.value)}
+                  placeholder="输入案例内容"
+                  required
+                />
+              </div>
+            </>
+          )}
         
           <div className="space-y-1.5">
             <Label htmlFor="question">问题 *</Label>
