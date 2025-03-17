@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { User, Send } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Comment {
   id: string;
   content: string;
   createdBy: string;
   createdAt: Date;
+  userType?: number; // 添加用户类型字段，用于区分评论者身份
 }
 
 interface CommentSectionProps {
@@ -18,7 +20,6 @@ interface CommentSectionProps {
 }
 
 const formatDate = (date: Date) => {
-  
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
     month: 'short',
@@ -26,6 +27,11 @@ const formatDate = (date: Date) => {
     hour: '2-digit',
     minute: '2-digit'
   }).format(date);
+};
+
+// 根据用户类型判断是否为老师或管理员
+const isTeacherOrAdmin = (userType?: number): boolean => {
+  return userType === 1 || userType === 2; // 1 = Teacher, 2 = Admin
 };
 
 export const CommentSection: React.FC<CommentSectionProps> = ({
@@ -36,6 +42,9 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // 获取当前用户信息，用于后续判断
+  const { user } = useAuth();
 
   const handleAddComment = async () => {
     if (commentText.trim() && onAddComment) {
@@ -73,7 +82,15 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                     {formatDate(comment.createdAt)}
                   </span>
                 </div>
-                <div className="bg-muted/50 rounded-lg p-3 mt-1">
+                {/* 根据用户类型设置不同的背景色 */}
+                <div 
+                  className={`rounded-lg p-3 mt-1 ${
+                    // 老师或管理员的评论使用特殊背景色
+                    isTeacherOrAdmin(comment.userType) 
+                      ? 'bg-blue-50 border border-blue-200' 
+                      : 'bg-muted/50'
+                  }`}
+                >
                   <p className="text-sm">{comment.content}</p>
                 </div>
               </div>

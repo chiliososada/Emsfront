@@ -17,11 +17,6 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
   const [caseContent, setCaseContent] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [source, setSource] = useState<number>(0); // 0 = Personal, 1 = Company
-
-  // 案例相关字段
-  const [caseName, setCaseName] = useState('');
-  const [position, setPosition] = useState('');
   
   // 获取可能的职位列表
   const [availablePositions, setAvailablePositions] = useState<string[]>([]);
@@ -31,36 +26,18 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
   const { user } = useAuth();
   const userType = user?.userType || 0; // 默认为 student(0)
   const isTeacherOrAdmin = userType === 1 || userType === 2; // 教师或管理员
+  
+  // 根据用户类型自动设置问题来源，不再需要用户选择
+  const source = isTeacherOrAdmin ? 1 : 0; // 1 = Company, 0 = Personal
 
-  // 获取可用的职位列表
-  const fetchPositions = async () => {
-    try {
-      setLoadingPositions(true);
-      const response = await caseService.getCases(1, 100);
-      
-      if (response && response.items) {
-        // 提取不同的职位并过滤掉null和空值
-        const uniquePositions = Array.from(
-          new Set(
-            response.items
-              .map(item => item.position)
-              .filter(position => position && position.trim() !== '')
-          )
-        );
-        
-        setAvailablePositions(uniquePositions);
-      }
-    } catch (error) {
-      console.error('获取职位列表失败:', error);
-    } finally {
-      setLoadingPositions(false);
-    }
-  };
+  // 案例相关字段
+  const [caseName, setCaseName] = useState('');
+  const [position, setPosition] = useState('');
 
   // 当组件挂载时，获取职位列表和设置默认值
   useEffect(() => {
     if (isExpanded) {
-     // fetchPositions();
+      // fetchPositions();
     }
     
     if (isTeacherOrAdmin) {
@@ -73,7 +50,6 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
     setAnswer('');
     setCaseContent('');
     setPosition('');
-    setSource(0);
     
     // 只有在学生模式下才重置案例名称
     if (!isTeacherOrAdmin) {
@@ -127,12 +103,12 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
       const caseResponse = await caseService.createCase(caseRequest);
       const caseId = caseResponse.caseId;
       
-      // 创建问题
+      // 创建问题 - 使用根据用户类型自动设置的source
       const questionRequest = {
         caseID: caseId,
         questionText: question,
         answer: answer || "",
-        source: source 
+        source: source // 自动设置的问题来源
       };
       
       await questionService.createQuestion(questionRequest);
@@ -278,21 +254,7 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
             />
           </div>
           
-          <div className="space-y-1.5">
-            <Label htmlFor="source">问题来源</Label>
-            <Select 
-              value={source.toString()} 
-              onValueChange={(value) => setSource(parseInt(value))}
-            >
-              <SelectTrigger id="source">
-                <SelectValue placeholder="选择问题来源" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">个人</SelectItem>
-                <SelectItem value="1">公司</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* 移除问题来源选择，由系统自动设置 */}
           
           <div className="pt-2 flex justify-end">
             <Button 

@@ -6,6 +6,7 @@ import { CommentSection } from './CommentSection';
 import { formatDate } from './utils';
 import { questionService } from '@/services/questionService';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 // 定义问题对象的接口
 export interface InterviewQuestion {
@@ -16,7 +17,7 @@ export interface InterviewQuestion {
   company?: string;
   position?: string;
   isInternal: boolean;
-  status: number; // 修改为数字类型，对应后端枚举
+  status: number;
   createdBy: string;
   createdAt: Date;
   comments: Comment[];
@@ -27,6 +28,7 @@ interface Comment {
   content: string;
   createdBy: string;
   createdAt: Date;
+  userType?: number; // 添加用户类型以区分评论者身份
 }
 
 interface QuestionCardProps {
@@ -41,6 +43,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoadedRevisions, setHasLoadedRevisions] = useState(false);
   const [firstComment, setFirstComment] = useState<Comment | null>(null);
+  
+  // 获取当前用户信息
+  const { user } = useAuth();
+  const currentUserType = user?.userType || 0;
 
   const toggleExpanded = () => {
     setExpanded(!expanded);
@@ -63,15 +69,16 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
 
       const revisions = await questionService.getRevisions(questionId);
 
-      // 将修订转换为评论格式
+      // 将修订转换为评论格式，添加用户类型信息
       const newComments: Comment[] = revisions.map(revision => {
-        
         return {
-        id: revision.revisionID.toString(),
-        content: revision.revisionText,
-        createdBy: revision.username || "用户",
-        createdAt: new Date(revision.createdAt+"Z")
-      }});
+          id: revision.revisionID.toString(),
+          content: revision.revisionText,
+          createdBy: revision.username || "用户",
+          createdAt: new Date(revision.createdAt+"Z"),
+          userType: revision.userType // 假设后端返回了用户类型
+        };
+      });
       
       // 如果有评论，则设置第一条评论
       if (newComments.length > 0) {
@@ -113,8 +120,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
       const newComment: Comment = {
         id: response.revisionId.toString(),
         content: commentText,
-        createdBy: "当前用户", // 实际中应该从用户会话获取
-        createdAt: new Date()
+        createdBy: user?.username || "当前用户",
+        createdAt: new Date(),
+        userType: currentUserType // 添加当前用户类型
       };
 
       setComments(prevComments => [...prevComments, newComment]);
@@ -159,7 +167,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
 
           {/* 显示答案部分 - 优先显示第一条评论内容，如果没有则显示原答案 */}
           <div className="mb-3 mt-4 bg-muted/30 p-3 rounded-md">
-            { /*  <h4 className="text-sm font-medium mb-1 text-muted-foreground">答案:</h4>*/}
             <div className="text-sm text-foreground">
               {isLoading ? (
                 <div className="flex items-center justify-center py-2">
@@ -172,7 +179,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
                 question.answer || "暂无答案"
               )}
             </div>
-
           </div>
 
           <div className="flex justify-between items-center text-sm text-muted-foreground">
