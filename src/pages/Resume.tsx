@@ -26,7 +26,18 @@ const ResumePage = () => {
     try {
       setLoading(true);
       const data = await resumeService.getResumes();
-      setResumes(data);
+      
+      // 处理日期字段 - 将所有日期字符串转为Date对象
+      const processedData = data.map(resume => ({
+        ...resume,
+        uploadedAt: new Date(resume.uploadedAt + 'Z'), // 添加Z以确保UTC时间
+        comments: resume.comments ? resume.comments.map(comment => ({
+          ...comment,
+          createdAt: new Date(comment.createdAt + 'Z')
+        })) : []
+      }));
+      
+      setResumes(processedData);
     } catch (error) {
       console.error('获取简历列表失败:', error);
       toast({
