@@ -241,7 +241,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
       />
       <div className="mb-2 bg-muted/10 p-3 rounded-md grid grid-cols-1 w-full">
         <div className="font-medium text-lg whitespace-normal break-all">
-          {question.question}
+        <span className="text-blue-600 font-bold">问题：</span> 
+        <span className="text-gray-700">{question.question}</span>
         </div>
       </div>
     </div>
@@ -249,19 +250,26 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
 
   {/* 显示答案部分 - 优先显示第一条评论内容，如果没有则显示原答案 */}
   <div className="mb-3 mt-4 bg-muted/30 p-3 rounded-md">
-    <div className="text-sm text-foreground whitespace-pre-wrap break-words">
-      {isLoading ? (
-        <div className="flex items-center justify-center py-2">
-          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-          加载中...
-        </div>
-      ) : firstComment ? (
-        firstComment.content
-      ) : (
-        question.answer || "暂无答案"
-      )}
-    </div>
+  <div className="text-sm text-foreground whitespace-pre-wrap break-words">
+    {isLoading ? (
+      <div className="flex items-center justify-center py-2">
+        <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+        加载中...
+      </div>
+    ) : firstComment ? (
+      <>
+       <span className="text-red-400 font-bold">回答：</span>
+        {firstComment.content}
+      </>
+    ) : (
+      <>
+        <span className="text-red-400 font-bold">回答：</span>
+        {question.answer || "暂无答案"}
+      </>
+    )}
   </div>
+</div>
+
 
   <div className="flex justify-between items-center text-sm text-muted-foreground">
     <span>由 {question.createdBy} 添加于 {formatDate(question.createdAt)}</span>
