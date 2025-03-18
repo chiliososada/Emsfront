@@ -21,6 +21,8 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
   // 获取可能的职位列表
   const [availablePositions, setAvailablePositions] = useState<string[]>([]);
   const [loadingPositions, setLoadingPositions] = useState(false);
+  const [customPosition, setCustomPosition] = useState('');
+  const [isCustomPosition, setIsCustomPosition] = useState(false);
 
   // 获取用户类型
   const { user } = useAuth();
@@ -34,10 +36,28 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
   const [caseName, setCaseName] = useState('');
   const [position, setPosition] = useState('');
 
+  // 获取所有可用的职位列表
+  const fetchPositions = async () => {
+    try {
+      setLoadingPositions(true);
+      const positions = await caseService.getPositions();
+      
+      if (Array.isArray(positions) && positions.length > 0) {
+        setAvailablePositions(positions);
+      } else {
+        console.log('没有获取到关键字数据或数据为空');
+      }
+    } catch (error) {
+      console.error('获取关键字列表失败:', error);
+    } finally {
+      setLoadingPositions(false);
+    }
+  };
+
   // 当组件挂载时，获取职位列表和设置默认值
   useEffect(() => {
     if (isExpanded) {
-      // fetchPositions();
+      fetchPositions();
     }
     
     if (isTeacherOrAdmin) {
@@ -50,6 +70,8 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
     setAnswer('');
     setCaseContent('');
     setPosition('');
+    setCustomPosition('');
+    setIsCustomPosition(false);
     
     // 只有在学生模式下才重置案件名称
     if (!isTeacherOrAdmin) {
@@ -71,7 +93,10 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
       return;
     }
 
-    if (!position.trim()) {
+    // 确定最终使用的关键字（自定义或选择的）
+    const finalPosition = isCustomPosition ? customPosition : position;
+    
+    if (!finalPosition.trim()) {
       toast({
         title: "关键字不能为空",
         description: "关键字是必填项。",
@@ -105,8 +130,8 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
       const caseRequest = {
         caseName: caseName || `面试问题集`,
         companyName: isTeacherOrAdmin ? 'toyousoft' : undefined,
-        position: position,
-        description: caseContent || `${position}相关面试问题`
+        position: finalPosition,
+        description: caseContent || `${finalPosition}相关面试问题`
       };
       
       const caseResponse = await caseService.createCase(caseRequest);
@@ -147,6 +172,17 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
     }
   };
 
+  // 处理关键字选择变化
+  const handlePositionChange = (value: string) => {
+    if (value === "custom") {
+      setIsCustomPosition(true);
+      setPosition("");
+    } else {
+      setPosition(value);
+      setIsCustomPosition(false);
+    }
+  };
+
   if (!isExpanded) {
     return (
       <Button
@@ -176,43 +212,53 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
         </div>
         
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {/* 首先显示关键字字段，确保宽度与其他字段一致 */}
+          {/* 关键字选择/输入区域 */}
           <div className="space-y-1.5">
             <Label htmlFor="position">关键字（Java,JavaScript） <span className="text-red-500">*</span></Label>
-            {availablePositions.length > 0 ? (
-              <Select 
-                value={position} 
-                onValueChange={setPosition}
-              >
-                <SelectTrigger id="position">
-                  <SelectValue placeholder="请输入关键字" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availablePositions.map((pos) => (
-                    <SelectItem key={pos} value={pos}>
-                      {pos}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="other">+ 添加新关键字</SelectItem>
-                </SelectContent>
-              </Select>
+            
+            {loadingPositions ? (
+              <div className="flex items-center justify-center py-2">
+                <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+                <span className="text-sm text-muted-foreground">加载关键字...</span>
+              </div>
+            ) : availablePositions.length > 0 ? (
+              <>
+                {/* 有现有关键字时显示选择框 */}
+                <Select 
+                  value={isCustomPosition ? "custom" : position} 
+                  onValueChange={handlePositionChange}
+                >
+                  <SelectTrigger id="position">
+                    <SelectValue placeholder="选择或输入关键字" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePositions.map((pos) => (
+                      <SelectItem key={pos} value={pos}>
+                        {pos}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">+ 添加新关键字</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {/* 如果选择了"添加新关键字"，则显示输入框 */}
+                {isCustomPosition && (
+                  <Input
+                    className="mt-2"
+                    value={customPosition}
+                    onChange={(e) => setCustomPosition(e.target.value)}
+                    placeholder="请输入新关键字"
+                    required
+                  />
+                )}
+              </>
             ) : (
+              /* 无现有关键字时，显示普通输入框 */
               <Input
                 id="position"
                 value={position}
                 onChange={(e) => setPosition(e.target.value)}
                 placeholder="请输入关键字"
-                required
-              />
-            )}
-            
-            {/* 如果选择"添加新关键字"，则显示输入框 */}
-            {position === 'other' && (
-              <Input
-                className="mt-2"
-                value=""
-                onChange={(e) => setPosition(e.target.value)}
-                placeholder="请输入新关键字"
                 required
               />
             )}
@@ -266,8 +312,6 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
               required
             />
           </div>
-          
-          {/* 移除问题来源选择，由系统自动设置 */}
           
           <div className="pt-2 flex justify-end">
             <Button 

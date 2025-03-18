@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Upload, XCircle, FileText, Image, FileSpreadsheet } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({ onUploadSuccess }) =
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 支持的文件类型
   const allowedFileTypes = [
@@ -63,6 +64,13 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({ onUploadSuccess }) =
     }
   };
 
+  // 打开文件选择对话框
+  const openFileSelector = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files?.[0];
@@ -85,6 +93,10 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({ onUploadSuccess }) =
 
   const handleRemoveFile = () => {
     setFile(null);
+    // 重置file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -169,16 +181,27 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({ onUploadSuccess }) =
                 
                 {!file ? (
                   <div
+                    onClick={openFileSelector}
                     onDrop={handleDrop}
                     onDragOver={handleDragOver}
                     className="border-2 border-dashed border-muted rounded-lg p-8 text-center hover:bg-muted/50 transition-colors cursor-pointer"
                   >
                     <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                     <p className="text-sm text-muted-foreground mb-1">
-                      拖放你的简历，或{" "}
-                      <span className="text-primary font-medium">浏览文件</span>
+                      拖放你的简历，或点击此处上传
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={(e) => {
+                        e.stopPropagation(); // 防止事件冒泡
+                        openFileSelector();
+                      }}
+                      className="mt-2"
+                    >
+                      浏览文件
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-3">
                       支持JPG、JPEG、PNG、GIF、PDF、DOC、DOCX、XLS、XLSX格式，最大5MB
                     </p>
                     <Input
@@ -187,10 +210,8 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({ onUploadSuccess }) =
                       onChange={handleFileChange}
                       className="hidden"
                       id="resume-upload"
+                      ref={fileInputRef}
                     />
-                    <label htmlFor="resume-upload" className="sr-only">
-                      选择文件
-                    </label>
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 p-3 border rounded-lg">

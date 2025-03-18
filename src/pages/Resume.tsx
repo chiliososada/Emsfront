@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Filter, DownloadCloud, Plus, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ResumeViewModal } from '@/components/resume/ResumeViewModal';
+import ResumeViewModal from '@/components/resume/ResumeViewModal';
 import { useToast } from '@/hooks/use-toast';
 import { resumeService, Resume, Comment } from '@/services/resumeService';
 
@@ -18,6 +18,8 @@ const ResumePage = () => {
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const { toast } = useToast();
+  // 添加刷新标志
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // 获取简历列表
   const fetchResumes = async () => {
@@ -37,10 +39,10 @@ const ResumePage = () => {
     }
   };
 
-  // 组件挂载时获取数据
+  // 组件挂载时获取数据和刷新标志变化时重新获取数据
   useEffect(() => {
     fetchResumes();
-  }, []);
+  }, [refreshTrigger]);
 
   const toggleFilter = (filter: string) => {
     if (activeFilters.includes(filter)) {
@@ -65,9 +67,9 @@ const ResumePage = () => {
     setShowViewModal(true);
   };
 
+  // 修改handleStatusChange函数，通过两种方式更新状态
   const handleStatusChange = (resumeId: string, newStatus: Resume['status']) => {
-    // 这里应该调用API来更新状态
-    // 目前只在前端更新状态用于展示
+    // 1. 更新本地状态
     const updatedResumes = resumes.map(resume => {
       if (resume.id === resumeId) {
         return { ...resume, status: newStatus };
@@ -75,17 +77,27 @@ const ResumePage = () => {
       return resume;
     });
 
+    // 更新本地状态
     setResumes(updatedResumes);
 
+    // 更新选中的简历状态
     if (selectedResume && selectedResume.id === resumeId) {
       setSelectedResume({ ...selectedResume, status: newStatus });
     }
 
+    // 显示成功消息
     toast({
       title: "状态已更新",
-      description: `简历状态已更新为${newStatus}。`,
+      description: `简历状态已更新为${
+        newStatus === 'approved' ? '已批准' : 
+        newStatus === 'reviewed' ? '已审阅' : '待审核'
+      }。`,
     });
 
+    // 2. 触发刷新，从服务器重新获取最新数据
+    setRefreshTrigger(prev => prev + 1);
+
+    // 关闭模态框
     setShowViewModal(false);
   };
 
@@ -118,6 +130,9 @@ const ResumePage = () => {
       title: "评论已添加",
       description: "您的评论已添加到简历。",
     });
+    
+    // 触发刷新
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleDownloadTemplate = async () => {
@@ -191,7 +206,7 @@ const ResumePage = () => {
 
         {showUpload && (
           <div className="animate-fade-in">
-            <ResumeUpload onUploadSuccess={fetchResumes} />
+            <ResumeUpload onUploadSuccess={() => setRefreshTrigger(prev => prev + 1)} />
           </div>
         )}
 

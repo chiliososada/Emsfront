@@ -13,8 +13,6 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  FileDown,
-  Eye,
   Send,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +26,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { resumeService } from '@/services/resumeService';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ResumeViewModalProps {
   resume: Resume;
@@ -69,7 +68,7 @@ const getStatusColor = (status: Resume['status']) => {
   }
 };
 
-export const ResumeViewModal: React.FC<ResumeViewModalProps> = ({
+const ResumeViewModal: React.FC<ResumeViewModalProps> = ({
   resume,
   open,
   onOpenChange,
@@ -78,13 +77,38 @@ export const ResumeViewModal: React.FC<ResumeViewModalProps> = ({
 }) => {
   const [currentStatus, setCurrentStatus] = useState<Resume['status']>(resume.status);
   const [newComment, setNewComment] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // 获取当前用户信息
+  const { user } = useAuth();
+  // 判断用户是否为学生（userType === 0）
+  const isStudent = user?.userType === 0;
+
+  // 当resume属性更新时，确保内部状态也更新
+  React.useEffect(() => {
+    setCurrentStatus(resume.status);
+  }, [resume]);
 
   const handleStatusChange = (newStatus: string) => {
     setCurrentStatus(newStatus as Resume['status']);
   };
 
   const saveChanges = async () => {
+    // 如果是学生用户，直接返回不执行任何操作
+    if (isStudent) {
+      toast({
+        title: "权限不足",
+        description: "当前用户无法修改简历状态或添加评价",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (isSaving) return; // 防止重复提交
+    
     try {
+      setIsSaving(true);
+      
       // 使用 reviewResume 方法同时更新状态和可能的评论
       await resumeService.reviewResume(
         resume.id, 
@@ -92,9 +116,10 @@ export const ResumeViewModal: React.FC<ResumeViewModalProps> = ({
         newComment.trim() || undefined
       );
       
-      // 更新本地状态
+      // 通过回调函数通知父组件状态已更改
       onStatusChange(resume.id, currentStatus);
       
+      // 显示成功消息 (父组件也会显示，但为了安全起见)
       toast({
         title: "简历审核成功",
         description: "简历状态和评价已更新。"
@@ -107,6 +132,9 @@ export const ResumeViewModal: React.FC<ResumeViewModalProps> = ({
 
       // 清空评论输入
       setNewComment('');
+      
+      // 自动关闭模态框
+      onOpenChange(false);
     } catch (error) {
       console.error("更新简历失败:", error);
       toast({
@@ -114,50 +142,12 @@ export const ResumeViewModal: React.FC<ResumeViewModalProps> = ({
         description: "无法更新简历，请重试。",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // const handleAddComment = () => {
-  //   if (newComment.trim() && onAddComment) {
-  //     onAddComment(resume.id, newComment.trim());
-  //     setNewComment('');
-  //   }
-  // };
-
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    try {
-      await resumeService.downloadResume(resume.fileUrl, resume.fileName);
-    } catch (error) {
-      console.error('下载失败:', error);
-      toast({
-        title: "下载失败",
-        description: "无法下载文件，请稍后重试。",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleView = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    try {
-      // 对于PDF文件，我们可以在新窗口中打开
-      if (resume.fileName.toLowerCase().endsWith('.pdf')) {
-        const url = resume.fileUrl.startsWith('http') ? resume.fileUrl : `${window.location.origin}${resume.fileUrl}`;
-        window.open(url, '_blank');
-      } else {
-        // 对于其他文件，下载后查看
-        await resumeService.downloadResume(resume.fileUrl, resume.fileName);
-      }
-    } catch (error) {
-      console.error('查看文件失败:', error);
-      toast({
-        title: "查看失败",
-        description: "无法查看文件，请稍后重试。",
-        variant: "destructive",
-      });
-    }
-  };
+  // 已移除下载和查看功能
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -195,7 +185,11 @@ export const ResumeViewModal: React.FC<ResumeViewModalProps> = ({
 
           <div className="flex flex-col gap-1">
             <span className="text-sm font-medium">修改状态</span>
-            <Select value={currentStatus} onValueChange={handleStatusChange}>
+            <Select 
+              value={currentStatus} 
+              onValueChange={handleStatusChange}
+              disabled={isStudent}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="选择状态" />
               </SelectTrigger>
@@ -205,90 +199,72 @@ export const ResumeViewModal: React.FC<ResumeViewModalProps> = ({
                 <SelectItem value="approved">已批准</SelectItem>
               </SelectContent>
             </Select>
+            {isStudent && (
+              <p className="text-xs text-muted-foreground mt-1">当前用户无法修改简历状态</p>
+            )}
           </div>
+
           <div className="flex flex-col gap-2">
-  <span className="text-sm font-medium">最新评价</span>
-  <div className="border rounded-md p-3">
-    {resume.comments && resume.comments.length > 0 ? (
-      <div className="bg-muted/50 rounded-md p-3">
-        <div className="text-sm font-medium mb-2">
-          {resume.comments[resume.comments.length - 1].createdBy}
-        </div>
-        <div className="text-base font-normal leading-relaxed">
-          {resume.comments[resume.comments.length - 1].content}
-        </div>
-        <div className="text-xs text-muted-foreground mt-2">
-          {formatDate(resume.comments[resume.comments.length - 1].createdAt)}
-        </div>
-      </div>
-    ) : (
-      <p className="text-sm text-muted-foreground">暂无评价</p>
-    )}
-  </div>
-</div>
-          {/* <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">评价</span>
-            <div className="max-h-40 overflow-y-auto space-y-2 border rounded-md p-2">
+            <span className="text-sm font-medium">最新评价</span>
+            <div className="border rounded-md p-3">
               {resume.comments && resume.comments.length > 0 ? (
-                resume.comments.map((comment) => (
-                  <div key={comment.id} className="bg-muted/50 rounded-md p-2">
-                    <div className="text-sm font-medium">{comment.createdBy}</div>
-                    <div className="text-sm">{comment.content}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {formatDate(comment.createdAt)}
-                    </div>
+                <div className="bg-muted/50 rounded-md p-3">
+                  <div className="text-sm font-medium mb-2">
+                    {resume.comments[resume.comments.length - 1].createdBy}
                   </div>
-                )
-              )
+                  <div className="text-base font-normal leading-relaxed">
+                    {resume.comments[resume.comments.length - 1].content}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {formatDate(resume.comments[resume.comments.length - 1].createdAt)}
+                  </div>
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">暂无评价</p>
               )}
             </div>
-          </div> */}
+          </div>
 
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">添加评价并修改状态</span>
             <div className="flex gap-2">
               <Textarea 
-                placeholder="请评价..."
+                placeholder={isStudent ? "当前用户无法添加评价" : "请评价..."}
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                className="min-h-[200px] resize-none"
+                className="min-h-[120px] resize-none"
+                disabled={isStudent}
               />
             </div>
             <Button 
               onClick={saveChanges} 
               className="w-full flex items-center gap-2"
-              disabled={!newComment.trim()}
+              disabled={isSaving || isStudent}
             >
-              <Send size={16} />
-              提交评价和状态
+              {isSaving ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-1"></div>
+                  提交中...
+                </>
+              ) : (
+                <>
+                  <Send size={16} />
+                  提交评价和状态
+                </>
+              )}
             </Button>
+            {isStudent && (
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                当前用户无法添加评价或修改状态
+              </p>
+            )}
           </div>
         </div>
 
-        <DialogFooter className="flex sm:justify-between gap-2">
-          {/* <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-1"
-              onClick={handleView}
-            >
-              <Eye size={16} />
-              查看
-            </Button>
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-1"
-              onClick={handleDownload}
-            >
-              <FileDown size={16} />
-              下载
-            </Button>
-          </div> */}
-          {/* <Button onClick={saveChanges}>保存状态或评价</Button> */}
-        </DialogFooter>
+        {/* 移除了查看和下载按钮 */}
       </DialogContent>
     </Dialog>
   );
 };
+
+export default ResumeViewModal;
