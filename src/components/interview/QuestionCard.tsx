@@ -227,78 +227,82 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
   return (
     <Card className="hover-scale glass-card overflow-hidden animate-in">
       <CardContent className="p-0">
-        <div className="p-5">
-          <div className="flex justify-between items-start mb-3">
-            <div className="flex-1">
-              <QuestionMetadata
-                category={question.category}
-                company={question.company}
-                isInternal={question.isInternal}
-                status={question.status}
-                questionId={parseInt(question.id)}
-                onStatusChange={onStatusChange}
-                position={question.position}
-              />
-              <h3 className="font-medium text-lg leading-tight whitespace-pre-wrap break-words">{question.question}</h3>
-            </div>
-          </div>
-
-          {/* 显示答案部分 - 优先显示第一条评论内容，如果没有则显示原答案 */}
-          <div className="mb-3 mt-4 bg-muted/30 p-3 rounded-md">
-          <div className="text-sm text-foreground whitespace-pre-wrap break-words">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-2">
-                  <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-                  加载中...
-                </div>
-              ) : firstComment ? (
-                firstComment.content
-              ) : (
-                question.answer || "暂无答案"
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center text-sm text-muted-foreground">
-            <span>由 {question.createdBy} 添加于 {formatDate(question.createdAt)}</span>
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowCommentForm(!showCommentForm)}
-                className="flex items-center gap-1 hover:text-foreground transition-colors"
-              >
-                <MessageSquare size={16} />
-                {comments.length > 0 && comments.length}
-              </button>
-              <button
-                onClick={toggleExpanded}
-                className="flex items-center gap-1 hover:text-foreground transition-colors"
-              >
-                {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                {expanded ? '收起' : '展开'}
-              </button>
-            </div>
-          </div>
-
-          {/* 优化后的条件渲染逻辑，确保同时只显示一个评论区 */}
-          {expanded ? (
-            <CommentSection
-              comments={comments}
-              onAddComment={handleAddComment}
-              onDeleteComment={handleDeleteComment}
-              isLoading={isLoading}
-              questionStatus={question.status}
-            />
-          ) : (
-            showCommentForm && (
-              <CommentSection
-                comments={[]}
-                onAddComment={handleAddComment}
-                onDeleteComment={handleDeleteComment}
-                questionStatus={question.status}
-              />
-            )
-          )}
+      <div className="p-5">
+  <div className="flex justify-between items-start mb-3">
+    <div className="flex-1">
+      <QuestionMetadata
+        category={question.category}
+        company={question.company}
+        isInternal={question.isInternal}
+        status={question.status}
+        questionId={parseInt(question.id)}
+        onStatusChange={onStatusChange}
+        position={question.position}
+      />
+      <div className="mb-2 bg-muted/10 p-3 rounded-md grid grid-cols-1 w-full">
+        <div className="font-medium text-lg whitespace-normal break-all">
+          {question.question}
         </div>
+      </div>
+    </div>
+  </div>
+
+  {/* 显示答案部分 - 优先显示第一条评论内容，如果没有则显示原答案 */}
+  <div className="mb-3 mt-4 bg-muted/30 p-3 rounded-md">
+    <div className="text-sm text-foreground whitespace-pre-wrap break-words">
+      {isLoading ? (
+        <div className="flex items-center justify-center py-2">
+          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+          加载中...
+        </div>
+      ) : firstComment ? (
+        firstComment.content
+      ) : (
+        question.answer || "暂无答案"
+      )}
+    </div>
+  </div>
+
+  <div className="flex justify-between items-center text-sm text-muted-foreground">
+    <span>由 {question.createdBy} 添加于 {formatDate(question.createdAt)}</span>
+    <div className="flex gap-4">
+      <button
+        onClick={() => setShowCommentForm(!showCommentForm)}
+        className="flex items-center gap-1 hover:text-foreground transition-colors"
+      >
+        <MessageSquare size={16} />
+        {comments.length > 0 && comments.length}
+      </button>
+      <button
+        onClick={toggleExpanded}
+        className="flex items-center gap-1 hover:text-foreground transition-colors"
+      >
+        {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        {expanded ? '收起' : '展开'}
+      </button>
+    </div>
+  </div>
+
+  {/* 优化后的条件渲染逻辑，确保同时只显示一个评论区 */}
+  {expanded ? (
+    <CommentSection
+      comments={comments}
+      onAddComment={handleAddComment}
+      onDeleteComment={handleDeleteComment}
+      isLoading={isLoading}
+      questionStatus={question.status}
+    />
+  ) : (
+    showCommentForm && (
+      <CommentSection
+        comments={[]}
+        onAddComment={handleAddComment}
+        onDeleteComment={handleDeleteComment}
+        questionStatus={question.status}
+      />
+    )
+  )}
+</div>
       </CardContent>
     </Card>
   );

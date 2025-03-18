@@ -139,15 +139,13 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                   <User size={14} />
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
+              <div className="flex-1 grid grid-cols-1 w-full">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{comment.createdBy}</span>
                   <span className="text-xs text-muted-foreground">
                     {formatDate(comment.createdAt)}
                   </span>
                 
-             
-                  
                   {/* 添加删除按钮 */}
                   {canDeleteComment(comment) && (
                     <Button
@@ -167,7 +165,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                 </div>
                 {/* 根据用户类型和评论类型设置不同的背景色 */}
                 <div 
-                  className={`rounded-lg p-3 mt-1 ${
+                  className={`rounded-lg p-3 mt-1 grid grid-cols-1 w-full ${
                     // 老师或管理员的评论使用特殊背景色
                     isTeacherOrAdmin(comment.userType) 
                       ? comment.type === 2 
@@ -176,7 +174,9 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                       : 'bg-muted/50'
                   }`}
                 >
-                  <p className="text-sm">{comment.content}</p>
+                  <div className="whitespace-pre-wrap break-all text-sm">
+                    {comment.content}
+                  </div>
                 </div>
               </div>
             </div>
