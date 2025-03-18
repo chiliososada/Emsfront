@@ -36,16 +36,20 @@ interface ResumeViewModalProps {
   onAddComment?: (resumeId: string, comment: string) => void;
 }
 
-const formatDate = (date: Date) => {
+const formatDate = (date: Date | string) => {
+  // 如果输入是字符串，则转换为Date对象
+  const dateObj = typeof date === 'string' 
+    ? new Date(date.endsWith('Z') ? date : date + 'Z') 
+    : date;
+    
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(date);
+  }).format(dateObj);
 };
-
 const getStatusIcon = (status: Resume['status']) => {
   switch (status) {
     case 'approved':

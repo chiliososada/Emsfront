@@ -12,12 +12,18 @@ interface ResumeCardProps {
   onView?: () => void;
 }
 
-const formatDate = (date: Date) => {
+// 修改后的代码
+const formatDate = (date: Date | string) => {
+  // 如果输入是字符串，则转换为Date对象
+  const dateObj = typeof date === 'string' 
+    ? new Date(date.endsWith('Z') ? date : date + 'Z') 
+    : date;
+    
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-  }).format(date);
+  }).format(dateObj);
 };
 
 const getStatusIcon = (status: Resume['status']) => {
