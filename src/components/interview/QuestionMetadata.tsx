@@ -22,7 +22,7 @@ export const QuestionMetadata: React.FC<QuestionMetadataProps> = ({
     <div className="flex flex-wrap gap-2 mb-2">
       {/* 只保留position标签，删除其他标签 */}
       {position && (
-        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+       <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
           {position}
         </Badge>
       )}

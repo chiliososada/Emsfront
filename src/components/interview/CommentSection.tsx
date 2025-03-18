@@ -169,9 +169,9 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                     // 老师或管理员的评论使用特殊背景色
                     isTeacherOrAdmin(comment.userType) 
                       ? comment.type === 2 
-                        ? 'bg-purple-50 border border-purple-200' // 评论类型
-                        : 'bg-blue-50 border border-blue-200'     // 答案编辑类型
-                      : 'bg-muted/50'
+                      ? 'bg-blue-50 border border-blue-100' // 评论类型
+                      : 'bg-slate-50 border border-slate-100'     // 答案编辑类型
+                    : 'bg-gray-50 border border-gray-100'
                   }`}
                 >
                   <div className="whitespace-pre-wrap break-all text-sm">

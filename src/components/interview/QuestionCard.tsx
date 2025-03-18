@@ -241,7 +241,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
       />
       <div className="mb-2 bg-muted/10 p-3 rounded-md grid grid-cols-1 w-full">
         <div className="font-medium text-lg whitespace-normal break-all">
-        <span className="text-blue-600 font-bold">面试问题：</span> 
+        <span className="text-blue-600 font-bold">Question：</span> 
         <span className="text-gray-700">{question.question}</span>
         </div>
       </div>
@@ -258,12 +258,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
       </div>
     ) : firstComment ? (
       <>
-       <span className="text-red-400 font-bold">回答：</span>
+      <span className="text-slate-700 font-bold">Answer：</span>
         {firstComment.content}
       </>
     ) : (
       <>
-        <span className="text-red-400 font-bold">回答：</span>
+        <span className="text-slate-700 font-bold">Answer：</span>
         {question.answer || "暂无答案"}
       </>
     )}
