@@ -239,13 +239,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onStatusCh
                 onStatusChange={onStatusChange}
                 position={question.position}
               />
-              <h3 className="font-medium text-lg leading-tight text-balance">{question.question}</h3>
+              <h3 className="font-medium text-lg leading-tight whitespace-pre-wrap break-words">{question.question}</h3>
             </div>
           </div>
 
           {/* 显示答案部分 - 优先显示第一条评论内容，如果没有则显示原答案 */}
           <div className="mb-3 mt-4 bg-muted/30 p-3 rounded-md">
-            <div className="text-sm text-foreground">
+          <div className="text-sm text-foreground whitespace-pre-wrap break-words">
               {isLoading ? (
                 <div className="flex items-center justify-center py-2">
                   <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
