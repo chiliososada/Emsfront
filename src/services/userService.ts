@@ -17,7 +17,7 @@ export interface AddUserRequest {
 }
 
 export interface ResetPasswordRequest {
-  userId: string;
+    UserId: string;
   newPassword: string;
 }
 
@@ -62,10 +62,18 @@ export const userService = {
   },
   
   // Reset user password
-  resetPassword: async (userId: string, newPassword: string): Promise<{ message: string }> => {
+  resetPassword: async (userId: string | number, newPassword: string): Promise<{ message: string }> => {
     try {
+      // 检查userId是否存在
+      if (!userId) {
+        throw new Error('用户ID不能为空');
+      }
+      
+      // 转换确保userId是数字
+      const userIdNumber = typeof userId === 'string' ? parseInt(userId) : userId;
+      
       const resetPasswordRequest = {
-        userId: userId,
+        userId: userIdNumber, // 或尝试使用UserId（首字母大写）
         newPassword: newPassword
       };
       
