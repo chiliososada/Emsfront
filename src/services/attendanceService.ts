@@ -20,7 +20,7 @@ export interface AttendanceUploadRequest {
   month: string;
   workHours: number;
   transportationFee: number;
-  attendanceFile: File;
+  file: File;
   transportationFile?: File;
 }
 
@@ -47,124 +47,92 @@ export const attendanceService = {
   getAttendances: async (
     page: number = 1,
     pageSize: number = 10,
-    sortBy: string = "month",
-    sortDirection: string = "desc"
+    sortBy: string = "uploadDate",
+    sortDirection: string = "desc",
+    filters?: { month?: string; status?: number; userId?: number }
   ): Promise<PaginatedResponse<Attendance>> => {
-    // 这里是模拟数据，实际项目中需要替换为真实API调用
-    const mockData: Attendance[] = Array(20).fill(null).map((_, index) => ({
-      attendanceID: index + 1,
-      userID: 1,
-      username: '当前用户',
-      month: `2023-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}`,
-      fileUrl: '/api/fake-url/attendance.xlsx',
-      transportationFileUrl: Math.random() > 0.3 ? '/api/fake-url/transportation.pdf' : undefined,
-      uploadDate: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-      status: Math.floor(Math.random() * 3),
-      workHours: Math.floor(Math.random() * 160) + 40,
-      transportationFee: Math.floor(Math.random() * 20000) + 1000,
-      comments: Math.random() > 0.7 ? '已审核通过' : undefined,
-      reviewerID: Math.random() > 0.5 ? 2 : undefined,
-      reviewerName: Math.random() > 0.5 ? '审核员' : undefined
-    }));
-
-    // 根据sortBy和sortDirection排序
-    mockData.sort((a, b) => {
-      const key = sortBy as keyof Attendance;
-      const aValue = a[key];
-      const bValue = b[key];
-      
-      if (aValue === undefined || bValue === undefined) return 0;
-      
-      // 日期类型的比较
-      if (aValue instanceof Date && bValue instanceof Date) {
-        return sortDirection === 'asc' 
-          ? aValue.getTime() - bValue.getTime()
-          : bValue.getTime() - aValue.getTime();
+    let queryParams = `?PageNumber=${page}&PageSize=${pageSize}&SortBy=${sortBy}&SortDirection=${sortDirection}`;
+    
+    if (filters) {
+      if (filters.month) {
+        queryParams += `&Month=${filters.month}`;
       }
       
-      // 字符串类型的比较
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+      if (filters.status !== undefined && filters.status !== null) {
+        queryParams += `&Status=${filters.status}`;
       }
       
-      // 数字类型的比较
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      if (filters.userId) {
+        queryParams += `&UserId=${filters.userId}`;
       }
-      
-      return 0;
-    });
-
-    // 根据page和pageSize分页
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const paginatedItems = mockData.slice(start, end);
-
-    return {
-      items: paginatedItems,
-      totalCount: mockData.length,
-      pageCount: Math.ceil(mockData.length / pageSize),
-      currentPage: page,
-      pageSize: pageSize
-    };
-
-    // 实际项目中的API调用应该是这样：
-    // return apiRequest(
-    //   `/Attendance?PageNumber=${page}&PageSize=${pageSize}&SortBy=${sortBy}&SortDirection=${sortDirection}`
-    // );
+    }
+    
+    const response = await apiRequest(`/Attendance${queryParams}`);
+    
+    // 处理日期格式
+    if (response.items && Array.isArray(response.items)) {
+      response.items = response.items.map(item => ({
+        ...item,
+        uploadDate: new Date(item.uploadDate)
+      }));
+    }
+    
+    return response;
   },
 
   // 上传勤务表
-  uploadAttendance: async (data: AttendanceUploadRequest): Promise<{ message: string }> => {
-    console.log('模拟上传勤务表:', data);
+  uploadAttendance: async (data: AttendanceUploadRequest): Promise<{ message: string; fileUrl: string }> => {
+    const formData = new FormData();
+    formData.append("File", data.file);
+    formData.append("Month", data.month);
+    formData.append("WorkHours", data.workHours.toString());
+    formData.append("TransportationFee", data.transportationFee.toString());
     
-    // 模拟上传延迟
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    if (data.transportationFile) {
+      formData.append("TransportationFile", data.transportationFile);
+    }
     
-    // 返回模拟成功响应
-    return { message: "勤务表上传成功" };
-
-    // 实际项目中的代码：
-    // const formData = new FormData();
-    // formData.append("Month", data.month);
-    // formData.append("WorkHours", data.workHours.toString());
-    // formData.append("TransportationFee", data.transportationFee.toString());
-    // formData.append("File", data.attendanceFile);
-    // 
-    // if (data.transportationFile) {
-    //   formData.append("TransportationFile", data.transportationFile);
-    // }
-    // 
-    // return apiRequest("/Attendance", "POST", formData, true);
+    return apiRequest("/Attendance", "POST", formData, true);
   },
 
   // 下载模板
   downloadTemplate: async (type: "attendance" | "transportation"): Promise<void> => {
     try {
-      // 在实际项目中，这里应该调用真实的API
-      // const response = await fetch(`/api/File/templates/${type}_template.xlsx`);
+      const endpoint = type === "attendance" 
+        ? "/Attendance/template" 
+        : "/Attendance/transportation-template";
       
-      // 模拟下载延迟
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await apiRequest(endpoint);
       
-      console.log(`模拟下载${type}模板`);
+      if (!response.templateUrl) {
+        throw new Error("模板URL不存在");
+      }
       
-      // 实际项目中，应该像这样处理：
-      // if (!response.ok) {
-      //   throw new Error(`模板下载失败: ${response.status}`);
-      // }
-      // 
-      // const blob = await response.blob();
-      // const url = window.URL.createObjectURL(blob);
-      // const a = document.createElement('a');
-      // a.href = url;
-      // a.download = `${type}_template.xlsx`;
-      // document.body.appendChild(a);
-      // a.click();
-      // window.URL.revokeObjectURL(url);
-      // document.body.removeChild(a);
+      // 使用FileController的下载端点
+      const fileUrl = response.templateUrl;
+      const urlParts = fileUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      const folder = urlParts[urlParts.length - 2] || 'templates';
+      
+      const fileResponse = await fetch(`/api/File/${folder}/${fileName}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      if (!fileResponse.ok) {
+        throw new Error(`下载失败: ${fileResponse.status}`);
+      }
+      
+      const blob = await fileResponse.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
       console.error('下载模板失败:', error);
       throw error;
@@ -173,16 +141,7 @@ export const attendanceService = {
 
   // 删除勤务表
   deleteAttendance: async (id: number): Promise<{ message: string }> => {
-    console.log('模拟删除勤务表:', id);
-    
-    // 模拟删除延迟
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // 返回模拟成功响应
-    return { message: "勤务表删除成功" };
-
-    // 实际项目中的代码：
-    // return apiRequest(`/Attendance/${id}`, "DELETE");
+    return apiRequest(`/Attendance/${id}`, "DELETE");
   },
 
   // 审核勤务表
@@ -191,18 +150,46 @@ export const attendanceService = {
     status: number, 
     comments?: string
   ): Promise<{ message: string }> => {
-    console.log('模拟审核勤务表:', { id, status, comments });
-    
-    // 模拟审核延迟
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // 返回模拟成功响应
-    return { message: `勤务表审核成功，状态: ${getStatusText(status)}` };
-
-    // 实际项目中的代码：
-    // return apiRequest(`/Attendance/${id}/review`, "POST", { 
-    //   status, 
-    //   comments 
-    // });
+    return apiRequest(`/Attendance/${id}/review`, "POST", { 
+      status, 
+      comments 
+    });
+  },
+  
+  // 下载勤务表文件
+  downloadAttendanceFile: async (fileUrl: string, fileName: string): Promise<void> => {
+    try {
+      // 从fileUrl中提取文件夹和文件名
+      const urlParts = fileUrl.split('/');
+      const fileNameFromUrl = urlParts[urlParts.length - 1];
+      const folder = urlParts[urlParts.length - 2] || 'attendances';
+      
+      // 使用FileController的下载端点
+      const response = await fetch(`/api/File/${folder}/${fileNameFromUrl}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`下载失败: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || fileNameFromUrl || '勤务表.xlsx';
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('文件下载失败:', error);
+      throw error;
+    }
   }
 };
