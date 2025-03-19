@@ -208,7 +208,7 @@ const UsersPage = () => {
         return;
       }
       
-      // Call API to reset password
+      // Call API to reset password with correct property names
       await userService.resetPassword(selectedUser.id, newPassword);
       
       // Success

@@ -17,8 +17,8 @@ export interface AddUserRequest {
 }
 
 export interface ResetPasswordRequest {
-    UserId: string;
-  newPassword: string;
+  UserId: number;  // Changed to uppercase 'U' to match backend
+  NewPassword: string;  // Changed to uppercase 'N' to match backend
 }
 
 export const userService = {
@@ -62,8 +62,7 @@ export const userService = {
   },
   
   // Reset user password
-  // src/services/userService.ts第67行附近
-resetPassword: async (userId: string | number, newPassword: string): Promise<{ message: string }> => {
+  resetPassword: async (userId: string | number, newPassword: string): Promise<{ message: string }> => {
     try {
       // 检查userId是否存在
       if (!userId) {
@@ -73,9 +72,9 @@ resetPassword: async (userId: string | number, newPassword: string): Promise<{ m
       // 转换确保userId是数字
       const userIdNumber = typeof userId === 'string' ? parseInt(userId) : userId;
       
-      const resetPasswordRequest = {
-        UserId: userIdNumber, // 或尝试使用UserId（首字母大写）
-        newPassword: newPassword
+      const resetPasswordRequest: ResetPasswordRequest = {
+        UserId: userIdNumber,  // Properly cased to match backend
+        NewPassword: newPassword  // Properly cased to match backend
       };
       
       return await apiRequest("/User/reset-password", "POST", resetPasswordRequest);
