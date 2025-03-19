@@ -62,7 +62,8 @@ export const userService = {
   },
   
   // Reset user password
-  resetPassword: async (userId: string | number, newPassword: string): Promise<{ message: string }> => {
+  // src/services/userService.ts第67行附近
+resetPassword: async (userId: string | number, newPassword: string): Promise<{ message: string }> => {
     try {
       // 检查userId是否存在
       if (!userId) {
@@ -73,7 +74,7 @@ export const userService = {
       const userIdNumber = typeof userId === 'string' ? parseInt(userId) : userId;
       
       const resetPasswordRequest = {
-        userId: userIdNumber, // 或尝试使用UserId（首字母大写）
+        UserId: userIdNumber, // 或尝试使用UserId（首字母大写）
         newPassword: newPassword
       };
       
