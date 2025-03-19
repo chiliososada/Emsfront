@@ -300,7 +300,7 @@ const AttendancePage = () => {
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-6 shadow-sm border border-primary/10">
           <h1 className="text-3xl font-bold tracking-tight">勤务表管理</h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
-            在这里上传和管理您的勤务表和交通费凭证，查看审核状态和详细信息
+            在这里上传和管理您的勤务表和交通费，查看审核状态和详细信息
           </p>
           
           <div className="flex flex-wrap gap-3 mt-4">

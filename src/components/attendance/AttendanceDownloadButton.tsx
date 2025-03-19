@@ -1,37 +1,46 @@
-// src/components/attendance/AttendanceDownloadButton.tsx
 import React, { useState } from 'react';
-import { Download } from 'lucide-react';
+import { FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AttendanceDownloadButtonProps {
-  fileUrl?: string;
-  fileName?: string;
-  fileType: 'attendance' | 'transportation';
+  attendance: {
+    fileUrl?: string;
+    fileName?: string;
+    month?: string; // 可能用于文件名
+  };
   className?: string;
   children?: React.ReactNode;
-  disabled?: boolean;
+  fileType?: 'attendance' | 'transportation'; // 文件类型，用于区分文件名
 }
 
 export const AttendanceDownloadButton: React.FC<AttendanceDownloadButtonProps> = ({ 
-  fileUrl, 
-  fileName, 
-  fileType,
+  attendance, 
   className, 
   children,
-  disabled = false
+  fileType = 'attendance' // 默认为勤务表
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
+  const { user } = useAuth(); // 获取当前用户信息
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     
     // 边界情况检查
-    if (!fileUrl) {
+    if (!attendance) {
       toast({
         title: "下载失败",
-        description: `${fileType === 'attendance' ? '勤务表' : '交通费凭证'}文件URL不存在`,
+        description: "无效的勤务表数据",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!attendance.fileUrl) {
+      toast({
+        title: "下载失败",
+        description: "文件URL不存在",
         variant: "destructive",
       });
       return;
@@ -46,12 +55,12 @@ export const AttendanceDownloadButton: React.FC<AttendanceDownloadButtonProps> =
     try {
       // 从fileUrl中提取文件夹和文件名
       // 假设fileUrl格式为 "/files/attendances/filename.xlsx" 或 "/Storage/attendances/filename.xlsx"
-      const urlParts = fileUrl.split('/');
-      const fileNameFromUrl = urlParts[urlParts.length - 1];
+      const urlParts = attendance.fileUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1];
       const folder = urlParts[urlParts.length - 2] || 'attendances';
       
       // 使用FileController的下载端点
-      const response = await fetch(`/api/File/${folder}/${fileNameFromUrl}`, {
+      const response = await fetch(`/api/File/${folder}/${fileName}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
@@ -65,10 +74,26 @@ export const AttendanceDownloadButton: React.FC<AttendanceDownloadButtonProps> =
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
 
+      // 创建新的文件名，加入用户名
+      let newFileName = '';
+      const originalName = attendance.fileName || fileName || '';
+      const extension = originalName.split('.').pop() || 'xlsx'; // 获取扩展名
+      const userName = user?.username || '用户'; // 如果无法获取用户名，使用默认值
+      const month = attendance.month || ''; // 获取月份，如果存在
+      
+      // 构建新文件名：用户名_文件类型_月份.扩展名
+      if (month) {
+        newFileName = `${userName}_${fileType === 'attendance' ? '勤務表' : '交通費'}_${month}.${extension}`;
+      } else {
+        // 没有月份信息时使用原始文件名但添加用户名前缀
+        const nameWithoutExtension = originalName.replace(`.${extension}`, '');
+        newFileName = `${userName}_${nameWithoutExtension}.${extension}`;
+      }
+
       // 创建下载链接并触发下载
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName || fileNameFromUrl || `${fileType === 'attendance' ? '勤务表' : '交通费凭证'}.xlsx`;
+      a.download = newFileName;
       document.body.appendChild(a);
       a.click();
       
@@ -80,14 +105,14 @@ export const AttendanceDownloadButton: React.FC<AttendanceDownloadButtonProps> =
       
       toast({
         title: "下载成功",
-        description: `${fileType === 'attendance' ? '勤务表' : '交通费凭证'}已成功下载`
+        description: "文件已成功下载"
       });
     } catch (error) {
       console.error('下载出错:', error);
       
       toast({
         title: "下载失败",
-        description: `下载${fileType === 'attendance' ? '勤务表' : '交通费凭证'}时发生错误，请稍后再试`,
+        description: "下载文件时发生错误，请稍后再试",
         variant: "destructive",
       });
     } finally {
@@ -99,9 +124,8 @@ export const AttendanceDownloadButton: React.FC<AttendanceDownloadButtonProps> =
     <Button 
       onClick={handleDownload}
       variant="ghost"
-      size="sm"
       className={className || ""}
-      disabled={isDownloading || disabled || !fileUrl}
+      disabled={isDownloading}
     >
       {isDownloading ? (
         <span className="flex items-center justify-center gap-1">
@@ -110,8 +134,8 @@ export const AttendanceDownloadButton: React.FC<AttendanceDownloadButtonProps> =
         </span>
       ) : children || (
         <span className="flex items-center justify-center gap-1">
-          <Download size={14} />
-          下载{fileType === 'attendance' ? '勤务表' : '交通费凭证'}
+          <FileDown size={16} />
+          {fileType === 'attendance' ? '下载勤务表' : '下载交通费'}
         </span>
       )}
     </Button>

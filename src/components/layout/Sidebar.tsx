@@ -23,7 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
     { name: '勤务表', path: '/attendance', icon: FileText },
     { name: '简历', path: '/resume', icon: FileText },
     { name: '面试问题', path: '/interview', icon: Users },
-    { name: '录音', path: '/recordings', icon: Mic }, // 新增录音菜单项
+    { name: '面试录音', path: '/recordings', icon: Mic }, // 新增录音菜单项
     { name: '设置', path: '/settings', icon: Settings },
     // 仅管理员可见的用户管理链接
     ...(isAdmin ? [{ name: '用户管理', path: '/users', icon: UsersIcon }] : []),

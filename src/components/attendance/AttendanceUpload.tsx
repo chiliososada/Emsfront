@@ -335,7 +335,7 @@ export const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onUploadSucc
                 
                 <div className="space-y-2">
                   <Label>
-                    交通费凭证 (可选)
+                    交通费 (可选)
                   </Label>
                   {!transportationFile ? (
                     <div
@@ -346,7 +346,7 @@ export const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onUploadSucc
                     >
                       <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground mb-1">
-                        拖放交通费凭证或点击此处上传
+                        拖放交通费或点击此处上传
                       </p>
                       <p className="text-xs text-muted-foreground">
                         支持Excel格式 (.xls, .xlsx)

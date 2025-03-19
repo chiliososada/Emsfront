@@ -159,26 +159,32 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       </CardContent>
       
       <CardFooter className="flex border-t p-0">
-        <AttendanceDownloadButton
-          fileUrl={attendance.fileUrl}
-          fileName={`勤务表_${attendance.month}.xlsx`}
-          fileType="attendance"
-          className="flex-1 py-2.5 justify-center"
-        />
-        
-        {attendance.transportationFileUrl && (
-          <div className="w-px bg-border h-10"></div>
-        )}
-        
-        {attendance.transportationFileUrl && (
-          <AttendanceDownloadButton
-            fileUrl={attendance.transportationFileUrl}
-            fileName={`交通费_${attendance.month}.xlsx`}
-            fileType="transportation"
-            className="flex-1 py-2.5 justify-center"
-          />
-        )}
-      </CardFooter>
+  <AttendanceDownloadButton
+    attendance={{
+      fileUrl: attendance.fileUrl,
+      fileName: `勤务表_${attendance.month}.xlsx`,
+      month: attendance.month
+    }}
+    fileType="attendance"
+    className="flex-1 py-2.5 justify-center"
+  />
+  
+  {attendance.transportationFileUrl && (
+    <div className="w-px bg-border h-10"></div>
+  )}
+  
+  {attendance.transportationFileUrl && (
+    <AttendanceDownloadButton
+      attendance={{
+        fileUrl: attendance.transportationFileUrl,
+        fileName: `交通费_${attendance.month}.xlsx`,
+        month: attendance.month
+      }}
+      fileType="transportation"
+      className="flex-1 py-2.5 justify-center"
+    />
+  )}
+</CardFooter>
     </Card>
   );
 };
