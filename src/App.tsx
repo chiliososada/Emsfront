@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +9,7 @@ import ResumePage from "./pages/Resume";
 import UsersPage from "./pages/Users";
 import InterviewPage from "./pages/Interview";
 import SettingsPage from "./pages/Settings";
+import RecordingsPage from "./pages/Recordings"; // 导入新的录音页面
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -32,8 +32,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
 
-
-  
   return (
     <Routes>
       <Route path="/login" element={
@@ -48,6 +46,7 @@ const AppRoutes = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/resume" element={<ResumePage />} />
         <Route path="/interview" element={<InterviewPage />} />
+        <Route path="/recordings" element={<RecordingsPage />} /> {/* 新增录音页面路由 */}
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/users" element={<UsersPage />} />
       </Route>
