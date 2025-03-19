@@ -1,7 +1,7 @@
 import { apiRequest } from "./api";
 
 export interface User {
-  id: string;
+  userID: number;
   username: string;
   email: string;
   userType: number;
@@ -60,7 +60,7 @@ export const userService = {
       throw error;
     }
   },
-  
+
   // Reset user password
   resetPassword: async (userId: string | number, newPassword: string): Promise<{ message: string }> => {
     try {

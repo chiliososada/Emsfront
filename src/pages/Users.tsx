@@ -209,7 +209,7 @@ const UsersPage = () => {
       }
       
       // Call API to reset password with correct property names
-      await userService.resetPassword(selectedUser.id, newPassword);
+      await userService.resetPassword(selectedUser.userID, newPassword);
       
       // Success
       toast({
@@ -332,8 +332,8 @@ const UsersPage = () => {
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.map((user) => (
-                      <TableRow key={user.id} className="animate-in">
-                        <TableCell className="font-mono">{user.id}</TableCell>
+                      <TableRow key={user.userID} className="animate-in">
+                        <TableCell className="font-mono">{user.userID}</TableCell>
                         <TableCell className="font-medium">{user.username}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{getUserTypeBadge(user.userType)}</TableCell>
