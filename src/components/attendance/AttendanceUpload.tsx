@@ -1,57 +1,62 @@
+// src/components/attendance/AttendanceUpload.tsx
 import React, { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Calendar, 
+  Clock, 
+  DollarSign, 
+  Upload, 
+  XCircle, 
+  FileSpreadsheet 
+} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
-import { Upload, File, FileText, XCircle } from 'lucide-react';
-import { attendanceService, AttendanceUploadRequest } from '@/services/attendanceService';
+import { attendanceService } from '@/services/attendanceService';
 
 interface AttendanceUploadProps {
   onUploadSuccess?: () => void;
 }
 
 export const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onUploadSuccess }) => {
-  const [month, setMonth] = useState('');
-  const [workHours, setWorkHours] = useState('');
-  const [transportationFee, setTransportationFee] = useState('');
   const [attendanceFile, setAttendanceFile] = useState<File | null>(null);
   const [transportationFile, setTransportationFile] = useState<File | null>(null);
+  const [month, setMonth] = useState('');
+  const [workHours, setWorkHours] = useState<number>(0);
+  const [transportationFee, setTransportationFee] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
   
   const attendanceFileInputRef = useRef<HTMLInputElement>(null);
   const transportationFileInputRef = useRef<HTMLInputElement>(null);
   
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1;
+  
   // 支持的文件类型
   const allowedFileTypes = [
-    '.pdf', '.doc', '.docx', '.xls', '.xlsx',
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel.sheet.macroEnabled.12',
+    'application/vnd.ms-excel.sheet.binary.macroEnabled.12'
   ];
   
-  // 处理文件验证
-  const validateFile = (file: File): boolean => {
-    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    const isValidType = allowedFileTypes.includes(file.type) || 
-                      allowedFileTypes.includes(fileExtension);
-    
-    if (!isValidType) {
+  const validateFile = (file: File, fileType: 'attendance' | 'transportation') => {
+    if (!allowedFileTypes.includes(file.type)) {
       toast({
         title: "文件类型不支持",
-        description: "请上传PDF、Word或Excel格式的文件",
+        description: "请上传Excel文件 (.xls, .xlsx)",
         variant: "destructive",
       });
       return false;
     }
     
-    // 文件大小限制为20MB
-    if (file.size > 20 * 1024 * 1024) {
+    // 检查文件大小，限制为10MB
+    if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "文件太大",
-        description: "文件大小不能超过20MB",
+        description: "文件大小不能超过10MB。",
         variant: "destructive",
       });
       return false;
@@ -60,23 +65,23 @@ export const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onUploadSucc
     return true;
   };
   
-  // 处理勤务表文件选择
   const handleAttendanceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile && validateFile(selectedFile)) {
+    if (selectedFile) {
+      if (!validateFile(selectedFile, 'attendance')) {
+        return;
+      }
       setAttendanceFile(selectedFile);
-    } else if (e.target.value) {
-      e.target.value = '';
     }
   };
   
-  // 处理交通费文件选择
   const handleTransportationFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile && validateFile(selectedFile)) {
+    if (selectedFile) {
+      if (!validateFile(selectedFile, 'transportation')) {
+        return;
+      }
       setTransportationFile(selectedFile);
-    } else if (e.target.value) {
-      e.target.value = '';
     }
   };
   
@@ -89,46 +94,62 @@ export const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onUploadSucc
     }
   };
   
-  // 处理表单提交
+  const handleAttendanceDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      if (!validateFile(droppedFile, 'attendance')) {
+        return;
+      }
+      setAttendanceFile(droppedFile);
+    }
+  };
+  
+  const handleTransportationDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      if (!validateFile(droppedFile, 'transportation')) {
+        return;
+      }
+      setTransportationFile(droppedFile);
+    }
+  };
+  
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+  
+  const handleRemoveFile = (type: 'attendance' | 'transportation') => {
+    if (type === 'attendance') {
+      setAttendanceFile(null);
+      if (attendanceFileInputRef.current) {
+        attendanceFileInputRef.current.value = '';
+      }
+    } else {
+      setTransportationFile(null);
+      if (transportationFileInputRef.current) {
+        transportationFileInputRef.current.value = '';
+      }
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!month || !workHours || !transportationFee || !attendanceFile) {
+    if (!attendanceFile) {
       toast({
-        title: "表单不完整",
-        description: "请填写所有必填字段并上传勤务表文件",
+        title: "缺少勤务表文件",
+        description: "请上传勤务表文件",
         variant: "destructive",
       });
       return;
     }
     
-    // 验证月份格式 (YYYY-MM)
-    if (!/^\d{4}-\d{2}$/.test(month)) {
+    if (!month) {
       toast({
-        title: "月份格式错误",
-        description: "请使用YYYY-MM格式，例如：2023-05",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // 验证工作时间是否为正数
-    const parsedWorkHours = parseFloat(workHours);
-    if (isNaN(parsedWorkHours) || parsedWorkHours <= 0) {
-      toast({
-        title: "勤务时间无效",
-        description: "请输入有效的勤务时间（大于0的数字）",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // 验证交通费是否为正数
-    const parsedTransportationFee = parseFloat(transportationFee);
-    if (isNaN(parsedTransportationFee) || parsedTransportationFee < 0) {
-      toast({
-        title: "交通费无效",
-        description: "请输入有效的交通费（大于或等于0的数字）",
+        title: "请选择月份",
+        description: "请选择勤务表所属月份",
         variant: "destructive",
       });
       return;
@@ -137,28 +158,25 @@ export const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onUploadSucc
     setIsUploading(true);
     
     try {
-        const uploadData: AttendanceUploadRequest = {
-            file : attendanceFile, // 主要的勤务表文件
-            month,
-            workHours: parsedWorkHours,
-            transportationFee: parsedTransportationFee,
-            transportationFile  // 可选的交通费凭证文件
-          };
-      const response = await attendanceService.uploadAttendance(uploadData);
+      const response = await attendanceService.uploadAttendance({
+        month,
+        workHours,
+        transportationFee,
+        file: attendanceFile,
+        transportationFile: transportationFile || undefined
+      });
       
       toast({
         title: "上传成功",
-        description: response.message || "勤务表和交通费信息已成功上传",
+        description: response.message || "勤务表已成功上传",
       });
       
       // 重置表单
-      setMonth('');
-      setWorkHours('');
-      setTransportationFee('');
       setAttendanceFile(null);
       setTransportationFile(null);
-      if (attendanceFileInputRef.current) attendanceFileInputRef.current.value = '';
-      if (transportationFileInputRef.current) transportationFileInputRef.current.value = '';
+      setMonth('');
+      setWorkHours(0);
+      setTransportationFee(0);
       
       // 调用成功回调
       if (onUploadSuccess) {
@@ -168,7 +186,7 @@ export const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onUploadSucc
       console.error('上传失败:', error);
       toast({
         title: "上传失败",
-        description: "上传勤务表和交通费信息时发生错误",
+        description: "勤务表上传过程中发生错误，请重试",
         variant: "destructive",
       });
     } finally {
@@ -176,219 +194,207 @@ export const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onUploadSucc
     }
   };
   
-  // 下载模板
-  const handleDownloadTemplate = async (type: 'attendance' | 'transportation') => {
-    try {
-      await attendanceService.downloadTemplate(type);
-      toast({
-        title: "下载成功",
-        description: `${type === 'attendance' ? '勤务表' : '交通费'}模板已下载`
-      });
-    } catch (error) {
-      toast({
-        title: "下载失败",
-        description: `无法下载${type === 'attendance' ? '勤务表' : '交通费'}模板`,
-        variant: "destructive",
-      });
+  // 获取默认月份 (YYYY-MM格式，上个月)
+  const getDefaultMonth = () => {
+    let year = currentYear;
+    let month = currentMonth - 1;
+    
+    if (month === 0) {
+      month = 12;
+      year -= 1;
     }
+    
+    return `${year}-${month.toString().padStart(2, '0')}`;
   };
   
-  // 文件显示组件
-  const FileDisplay = ({ file, type, onRemove }: { file: File, type: string, onRemove: () => void }) => (
-    <div className="flex items-center gap-3 p-3 border rounded-lg bg-background/80">
-      <div className="p-2 bg-primary/10 rounded">
-        <FileText size={18} className="text-primary" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">
-          {file.name}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {type} · {(file.size / 1024 / 1024).toFixed(2)} MB
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={onRemove}
-        className="p-1.5 rounded-full hover:bg-muted transition-colors"
-      >
-        <XCircle size={16} className="text-muted-foreground" />
-      </button>
-    </div>
-  );
-  
   return (
-    <Card className="glass-card animate-in">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-xl">上传勤务表和交通费</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 月份 */}
-            <div className="space-y-2">
-              <Label htmlFor="month">
-                勤务月份 <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="month"
-                type="month"
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                placeholder="YYYY-MM"
-                required
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground">格式：YYYY-MM</p>
-            </div>
+    <Card className="glass-card animate-in overflow-hidden">
+      <CardContent className="p-0">
+        <form onSubmit={handleSubmit}>
+          <div className="p-5">
+            <h3 className="text-lg font-medium mb-4">上传勤务表</h3>
             
-            {/* 工作时间 */}
-            <div className="space-y-2">
-              <Label htmlFor="workHours">
-                勤务时间 (小时) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="workHours"
-                type="number"
-                value={workHours}
-                onChange={(e) => setWorkHours(e.target.value)}
-                placeholder="例如：160"
-                min="0"
-                step="0.5"
-                required
-                className="w-full"
-              />
-            </div>
-            
-            {/* 交通费 */}
-            <div className="space-y-2">
-              <Label htmlFor="transportationFee">
-                交通费 (円) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="transportationFee"
-                type="number"
-                value={transportationFee}
-                onChange={(e) => setTransportationFee(e.target.value)}
-                placeholder="例如：5000"
-                min="0"
-                step="1"
-                required
-                className="w-full"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-4 md:col-span-1">
+                <div className="space-y-2">
+                  <Label htmlFor="month">
+                    勤务月份 <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="flex items-center">
+                    <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="month"
+                      type="month"
+                      value={month}
+                      onChange={(e) => setMonth(e.target.value)}
+                      placeholder={getDefaultMonth()}
+                      className="w-full"
+                      required
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    请选择勤务表所属月份 (例如: 2023-01)
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="workHours">
+                    工作时间 (小时)
+                  </Label>
+                  <div className="flex items-center">
+                    <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="workHours"
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={workHours}
+                      onChange={(e) => setWorkHours(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="w-full"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    请输入本月总工作时间
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="transportationFee">
+                    交通费 (¥)
+                  </Label>
+                  <div className="flex items-center">
+                    <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="transportationFee"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={transportationFee}
+                      onChange={(e) => setTransportationFee(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="w-full"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    请输入本月交通费总额
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-4 md:col-span-1">
+                <div className="space-y-2">
+                  <Label>
+                    勤务表文件 <span className="text-red-500">*</span>
+                  </Label>
+                  {!attendanceFile ? (
+                    <div
+                      onClick={() => openFileSelector('attendance')}
+                      onDrop={handleAttendanceDrop}
+                      onDragOver={handleDragOver}
+                      className="border-2 border-dashed border-muted rounded-lg p-6 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground mb-1">
+                        拖放勤务表文件或点击此处上传
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        支持Excel格式 (.xls, .xlsx)
+                      </p>
+                      <Input
+                        type="file"
+                        accept=".xls,.xlsx"
+                        onChange={handleAttendanceFileChange}
+                        className="hidden"
+                        ref={attendanceFileInputRef}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-2 border rounded-lg">
+                      <div className="p-2 bg-green-50 rounded-lg">
+                        <FileSpreadsheet size={20} className="text-green-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {attendanceFile.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {(attendanceFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFile('attendance')}
+                        className="p-1 rounded-full hover:bg-muted transition-colors"
+                      >
+                        <XCircle size={16} className="text-muted-foreground" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>
+                    交通费凭证 (可选)
+                  </Label>
+                  {!transportationFile ? (
+                    <div
+                      onClick={() => openFileSelector('transportation')}
+                      onDrop={handleTransportationDrop}
+                      onDragOver={handleDragOver}
+                      className="border-2 border-dashed border-muted rounded-lg p-6 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground mb-1">
+                        拖放交通费凭证或点击此处上传
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        支持Excel格式 (.xls, .xlsx)
+                      </p>
+                      <Input
+                        type="file"
+                        accept=".xls,.xlsx"
+                        onChange={handleTransportationFileChange}
+                        className="hidden"
+                        ref={transportationFileInputRef}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-2 border rounded-lg">
+                      <div className="p-2 bg-blue-50 rounded-lg">
+                        <FileSpreadsheet size={20} className="text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {transportationFile.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {(transportationFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFile('transportation')}
+                        className="p-1 rounded-full hover:bg-muted transition-colors"
+                      >
+                        <XCircle size={16} className="text-muted-foreground" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-            {/* 勤务表文件上传 */}
-            <div className="space-y-2">
-              <Label htmlFor="attendanceFile">
-                勤务表文件 <span className="text-red-500">*</span>
-              </Label>
-              
-              {!attendanceFile ? (
-                <div 
-                  onClick={() => openFileSelector('attendance')} 
-                  className="border-2 border-dashed border-primary/20 rounded-lg p-4 text-center hover:bg-primary/5 cursor-pointer transition-colors"
-                >
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-primary/70" />
-                  <p className="text-sm text-muted-foreground mb-1">
-                    点击上传勤务表文件
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    支持 PDF, Word, Excel 格式
-                  </p>
-                  <Input
-                    ref={attendanceFileInputRef}
-                    id="attendanceFile"
-                    type="file"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx"
-                    onChange={handleAttendanceFileChange}
-                    className="hidden"
-                  />
-                </div>
-              ) : (
-                <FileDisplay 
-                  file={attendanceFile} 
-                  type="勤务表文件" 
-                  onRemove={() => {
-                    setAttendanceFile(null);
-                    if (attendanceFileInputRef.current) attendanceFileInputRef.current.value = '';
-                  }} 
-                />
-              )}
-              
-              <div className="flex justify-end mt-1">
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  className="text-xs h-auto p-0"
-                  onClick={() => handleDownloadTemplate('attendance')}
-                >
-                  下载勤务表模板
-                </Button>
-              </div>
-            </div>
-            
-            {/* 交通费文件上传 */}
-            <div className="space-y-2">
-              <Label htmlFor="transportationFile">
-                交通费 <span className="text-muted-foreground text-xs">(可选)</span>
-              </Label>
-              
-              {!transportationFile ? (
-                <div 
-                  onClick={() => openFileSelector('transportation')} 
-                  className="border-2 border-dashed border-muted rounded-lg p-4 text-center hover:bg-muted/10 cursor-pointer transition-colors"
-                >
-                  <File className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-1">
-                    点击上传交通费
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    支持 PDF, Word, Excel 格式
-                  </p>
-                  <Input
-                    ref={transportationFileInputRef}
-                    id="transportationFile"
-                    type="file"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx"
-                    onChange={handleTransportationFileChange}
-                    className="hidden"
-                  />
-                </div>
-              ) : (
-                <FileDisplay 
-                  file={transportationFile} 
-                  type="交通费" 
-                  onRemove={() => {
-                    setTransportationFile(null);
-                    if (transportationFileInputRef.current) transportationFileInputRef.current.value = '';
-                  }} 
-                />
-              )}
-              
-              <div className="flex justify-end mt-1">
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  className="text-xs h-auto p-0"
-                  onClick={() => handleDownloadTemplate('transportation')}
-                >
-                  下载交通费模板
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex justify-end mt-6">
-            <Button type="submit" className="w-full md:w-auto" disabled={isUploading}>
+          <div className="p-5 border-t bg-muted/30 flex justify-end">
+            <Button type="submit" className="w-full md:w-auto" disabled={isUploading || !attendanceFile || !month}>
               {isUploading ? (
-                <>
-                  <span className="animate-spin mr-2">⏳</span> 上传中...
-                </>
+                <span className="flex items-center">
+                  <span className="animate-spin h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full"></span>
+                  上传中...
+                </span>
               ) : (
-                <>提交</>
+                "上传勤务表"
               )}
             </Button>
           </div>

@@ -1,3 +1,4 @@
+// src/services/attendanceService.ts
 import { apiRequest } from "./api";
 
 export interface Attendance {
@@ -51,33 +52,48 @@ export const attendanceService = {
     sortDirection: string = "desc",
     filters?: { month?: string; status?: number; userId?: number }
   ): Promise<PaginatedResponse<Attendance>> => {
-    let queryParams = `?PageNumber=${page}&PageSize=${pageSize}&SortBy=${sortBy}&SortDirection=${sortDirection}`;
-    
-    if (filters) {
-      if (filters.month) {
-        queryParams += `&Month=${filters.month}`;
+    try {
+      let queryParams = `?PageNumber=${page}&PageSize=${pageSize}&SortBy=${sortBy}&SortDirection=${sortDirection}`;
+      
+      if (filters) {
+        if (filters.month) {
+          queryParams += `&Month=${filters.month}`;
+        }
+        
+        if (filters.status !== undefined && filters.status !== null) {
+          queryParams += `&Status=${filters.status}`;
+        }
+        
+        if (filters.userId) {
+          queryParams += `&UserId=${filters.userId}`;
+        }
       }
       
-      if (filters.status !== undefined && filters.status !== null) {
-        queryParams += `&Status=${filters.status}`;
+      const response = await apiRequest(`/Attendance${queryParams}`);
+      
+      // 解析日期和数字字段
+      if (response.items && Array.isArray(response.items)) {
+        response.items = response.items.map(item => ({
+          ...item,
+          uploadDate: new Date(item.uploadDate),
+          // 确保数字字段是数字类型
+          workHours: typeof item.workHours === 'string' ? parseFloat(item.workHours) : (item.workHours || 0),
+          transportationFee: typeof item.transportationFee === 'string' ? parseFloat(item.transportationFee) : (item.transportationFee || 0)
+        }));
       }
       
-      if (filters.userId) {
-        queryParams += `&UserId=${filters.userId}`;
-      }
+      return response;
+    } catch (error) {
+      console.error('获取勤务表列表失败:', error);
+      // 返回空数据，避免UI崩溃
+      return {
+        items: [],
+        totalCount: 0,
+        pageCount: 1,
+        currentPage: page,
+        pageSize: pageSize
+      };
     }
-    
-    const response = await apiRequest(`/Attendance${queryParams}`);
-    
-    // 处理日期格式
-    if (response.items && Array.isArray(response.items)) {
-      response.items = response.items.map(item => ({
-        ...item,
-        uploadDate: new Date(item.uploadDate)
-      }));
-    }
-    
-    return response;
   },
 
   // 上传勤务表
@@ -124,15 +140,22 @@ export const attendanceService = {
         throw new Error(`下载失败: ${fileResponse.status}`);
       }
       
+      // 获取文件数据并创建Blob
       const blob = await fileResponse.blob();
       const url = window.URL.createObjectURL(blob);
+      
+      // 创建下载链接并触发下载
       const a = document.createElement('a');
       a.href = url;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      // 清理
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
     } catch (error) {
       console.error('下载模板失败:', error);
       throw error;
@@ -175,18 +198,22 @@ export const attendanceService = {
         throw new Error(`下载失败: ${response.status}`);
       }
       
+      // 获取文件数据并创建Blob
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       
+      // 创建下载链接并触发下载
       const a = document.createElement('a');
       a.href = url;
       a.download = fileName || fileNameFromUrl || '勤务表.xlsx';
-      
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
       
-      window.URL.revokeObjectURL(url);
+      // 清理
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
     } catch (error) {
       console.error('文件下载失败:', error);
       throw error;

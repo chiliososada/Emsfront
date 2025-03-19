@@ -1,21 +1,22 @@
+// src/components/attendance/AttendanceReviewDialog.tsx
 import React, { useState } from 'react';
+import { Attendance, getStatusText } from '@/services/attendanceService';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { CheckCircle, XCircle } from 'lucide-react';
-import { Attendance, getStatusText } from '@/services/attendanceService';
+import { Calendar, Clock, DollarSign } from 'lucide-react';
 
 interface AttendanceReviewDialogProps {
   attendance: Attendance | null;
-  open: boolean;
   statusToSet: number | null;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (attendance: Attendance, status: number, comments: string) => void;
   isLoading: boolean;
@@ -23,89 +24,82 @@ interface AttendanceReviewDialogProps {
 
 export const AttendanceReviewDialog: React.FC<AttendanceReviewDialogProps> = ({
   attendance,
-  open,
   statusToSet,
+  open,
   onOpenChange,
   onConfirm,
   isLoading
 }) => {
   const [comments, setComments] = useState('');
-  
-  if (!attendance || statusToSet === null) {
-    return null;
-  }
-  
-  const isApproval = statusToSet === 1;
-  
-  const handleSubmit = () => {
-    if (attendance && statusToSet !== null) {
-      onConfirm(attendance, statusToSet, comments);
-    }
-  };
-  
+
+  // 如果没有选中的勤务表或状态，不渲染对话框
+  if (!attendance || statusToSet === null) return null;
+
+  // 格式化工时和交通费
+  const workHours = typeof attendance.workHours === 'number' ? attendance.workHours : 0;
+  const transportationFee = typeof attendance.transportationFee === 'number' ? attendance.transportationFee : 0;
+
+  // 审核操作类型文本
+  const actionText = statusToSet === 1 ? '批准' : '拒绝';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {isApproval ? (
-              <>
-                <CheckCircle className="text-green-500" size={18} />
-                批准勤务表
-              </>
-            ) : (
-              <>
-                <XCircle className="text-red-500" size={18} />
-                拒绝勤务表
-              </>
-            )}
-          </DialogTitle>
+          <DialogTitle>{actionText}勤务表</DialogTitle>
+          <DialogDescription>
+            您正在{actionText} {attendance.month} 的勤务表
+          </DialogDescription>
         </DialogHeader>
-        
+
         <div className="py-4">
-          <div className="space-y-1 mb-4">
-            <p className="text-sm font-medium">勤务月份</p>
-            <p className="text-sm">{attendance.month}</p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium">勤务时间</p>
-              <p className="text-sm">{attendance.workHours || 0} 小时</p>
+          <div className="space-y-3 mb-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar size={16} className="text-muted-foreground" />
+              <span>勤务月份: <span className="font-medium">{attendance.month}</span></span>
             </div>
-            
-            <div className="space-y-1">
-              <p className="text-sm font-medium">交通费</p>
-              <p className="text-sm">{attendance.transportationFee || 0} 円</p>
+            <div className="flex items-center gap-2 text-sm">
+              <Clock size={16} className="text-muted-foreground" />
+              <span>工作时间: <span className="font-medium">{workHours} 小时</span></span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <DollarSign size={16} className="text-muted-foreground" />
+              <span>交通费: <span className="font-medium">{transportationFee} ¥</span></span>
             </div>
           </div>
-          
+
           <div className="space-y-2">
-            <Label htmlFor="comments">审核意见</Label>
+            <label htmlFor="comments" className="text-sm font-medium">
+              审核意见 (可选)
+            </label>
             <Textarea
               id="comments"
-              placeholder={isApproval ? "添加批准意见（可选）" : "请说明拒绝原因"}
               value={comments}
               onChange={(e) => setComments(e.target.value)}
-              rows={4}
+              placeholder={`请输入${actionText}意见（可选）`}
+              className="resize-none"
+              rows={3}
             />
           </div>
         </div>
-        
+
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => {
+              onOpenChange(false);
+              setComments('');
+            }}
             disabled={isLoading}
           >
             取消
           </Button>
           <Button
-            variant={isApproval ? "default" : "destructive"}
-            onClick={handleSubmit}
-            disabled={isLoading || (!isApproval && !comments.trim())}
+            variant={statusToSet === 1 ? "default" : "destructive"}
+            onClick={() => onConfirm(attendance, statusToSet, comments)}
+            disabled={isLoading}
           >
-            {isLoading ? "处理中..." : isApproval ? "批准" : "拒绝"}
+            {isLoading ? "处理中..." : actionText}
           </Button>
         </DialogFooter>
       </DialogContent>
