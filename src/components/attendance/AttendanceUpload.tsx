@@ -137,14 +137,13 @@ export const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onUploadSucc
     setIsUploading(true);
     
     try {
-      const uploadData: AttendanceUploadRequest = {
-        month,
-        workHours: parsedWorkHours,
-        transportationFee: parsedTransportationFee,
-        attendanceFile,
-        transportationFile: transportationFile || undefined
-      };
-      
+        const uploadData: AttendanceUploadRequest = {
+            file : attendanceFile, // 主要的勤务表文件
+            month,
+            workHours: parsedWorkHours,
+            transportationFee: parsedTransportationFee,
+            transportationFile  // 可选的交通费凭证文件
+          };
       const response = await attendanceService.uploadAttendance(uploadData);
       
       toast({
