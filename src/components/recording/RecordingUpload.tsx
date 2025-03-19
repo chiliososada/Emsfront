@@ -105,12 +105,12 @@ export const RecordingUpload: React.FC<RecordingUploadProps> = ({ onUploadSucces
     if (!file || !title.trim() || !caseContent.trim() || !caseInformation.trim()) {
       toast({
         title: "缺少信息",
-        description: "请提供标题、案件内容、案件信息并上传录音文件。",
+        description: "请提供标题、案件名、案件信息并上传录音文件。",
         variant: "destructive",
       });
       return;
     }
-
+  
     setIsUploading(true);
     
     try {
@@ -157,7 +157,7 @@ export const RecordingUpload: React.FC<RecordingUploadProps> = ({ onUploadSucces
       <CardContent className="p-0">
         <form onSubmit={handleSubmit}>
           <div className="p-5">
-            <h3 className="text-lg font-medium mb-4">上传录音</h3>
+            <h3 className="text-lg font-medium mb-4">上传录音<span className="text-red-500">（すべての項目を日本語で入力してください。）</span></h3>
             
             <div className="space-y-4">
               <div>
@@ -176,7 +176,7 @@ export const RecordingUpload: React.FC<RecordingUploadProps> = ({ onUploadSucces
               
               <div>
                 <label htmlFor="caseContent" className="block text-sm font-medium mb-1.5">
-                  案件内容 <span className="text-red-500">*</span>
+                  案件名 <span className="text-red-500">*</span>
                 </label>
                 <Textarea
                   id="caseContent"

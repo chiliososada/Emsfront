@@ -1,6 +1,6 @@
 import React from 'react';
 import { Recording } from '@/services/recordingService';
-import { Music, Clock } from 'lucide-react';
+import { Music, Clock , User} from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { RecordingDownloadButton } from './RecordingDownloadButton';
 
@@ -34,6 +34,7 @@ const formatDate = (date: Date | string | undefined) => {
   }
 };
 
+// src/components/recording/RecordingCard.tsx 修改部分
 export const RecordingCard: React.FC<RecordingCardProps> = ({ recording }) => {
   // 处理无效录音数据的情况
   if (!recording) {
@@ -63,11 +64,18 @@ export const RecordingCard: React.FC<RecordingCardProps> = ({ recording }) => {
             </div>
           </div>
           <div className="flex flex-wrap gap-y-2 items-center text-sm">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Clock size={14} />
-              上传时间 {formatDate(recording.uploadedAt)}
-            </span>
-          </div>
+    {/* 新增上传人信息 */}
+    <span className="flex items-center gap-1.5 text-muted-foreground mr-4">
+      <User size={14} />
+      上传人: {recording.username || recording.uploadedBy || "未知用户"}
+    </span>
+    <span className="flex items-center gap-1.5 text-muted-foreground">
+      <Clock size={14} />
+      上传时间: {formatDate(recording.uploadDate || recording.uploadedAt)}
+    </span>
+  </div>
+    
+        
           
           <div className="mt-3 space-y-2">
             <div>

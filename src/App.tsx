@@ -10,6 +10,7 @@ import UsersPage from "./pages/Users";
 import InterviewPage from "./pages/Interview";
 import SettingsPage from "./pages/Settings";
 import RecordingsPage from "./pages/Recordings"; // 导入新的录音页面
+import AttendancePage from "./pages/Attendance"; // 导入新的录音页面
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -44,9 +45,10 @@ const AppRoutes = () => {
         </ProtectedRoute>
       }>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/Attendance" element={<AttendancePage />} />
         <Route path="/resume" element={<ResumePage />} />
         <Route path="/interview" element={<InterviewPage />} />
-        <Route path="/recordings" element={<RecordingsPage />} /> {/* 新增录音页面路由 */}
+        <Route path="/recordings" element={<RecordingsPage />} /> 
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/users" element={<UsersPage />} />
       </Route>

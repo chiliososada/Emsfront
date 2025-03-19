@@ -162,8 +162,8 @@ const RecordingsPage = () => {
                 {filteredRecordings.length > 0 ? (
                   filteredRecordings.map((recording) => (
                     <RecordingCard
-                      key={recording.id}
-                      recording={recording}
+                    key={recording.recordingID}
+                    recording={recording}
                     />
                   ))
                 ) : (

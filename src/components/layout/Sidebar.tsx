@@ -20,6 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
 
   const navigation = [
     { name: '仪表板', path: '/', icon: Home },
+    { name: '勤务表', path: '/attendance', icon: FileText },
     { name: '简历', path: '/resume', icon: FileText },
     { name: '面试问题', path: '/interview', icon: Users },
     { name: '录音', path: '/recordings', icon: Mic }, // 新增录音菜单项
