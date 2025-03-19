@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
 import Dashboard from "./pages/Index";
 import ResumePage from "./pages/Resume";
+import UsersPage from "./pages/Users";
 import InterviewPage from "./pages/Interview";
 import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -48,6 +49,7 @@ const AppRoutes = () => {
         <Route path="/resume" element={<ResumePage />} />
         <Route path="/interview" element={<InterviewPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/users" element={<UsersPage />} />
       </Route>
       
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

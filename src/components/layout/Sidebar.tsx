@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FileText, Users, Settings, Home, LogOut } from 'lucide-react';
+import { FileText, Users, Settings, Home, LogOut,UsersIcon  } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+
 
 interface SidebarProps {
   collapsed: boolean;
@@ -15,11 +16,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
   
   const isActive = (path: string) => location.pathname === path;
 
+  const { user } = useAuth();
+  const isAdmin = user?.userType === 2; // 2 = Admin
+
   const navigation = [
     { name: '仪表板', path: '/', icon: Home },
     { name: '简历', path: '/resume', icon: FileText },
     { name: '面试问题', path: '/interview', icon: Users },
     { name: '设置', path: '/settings', icon: Settings },
+    // 仅管理员可见的用户管理链接
+    ...(isAdmin ? [{ name: '用户管理', path: '/users', icon: UsersIcon }] : []),
   ];
   
   const handleLogout = () => {
