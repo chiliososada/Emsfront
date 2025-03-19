@@ -200,7 +200,7 @@ export const QuestionForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
     <Card className="glass-card animate-in overflow-hidden border border-gray-200">
       <CardContent className="p-0">
         <div className="flex justify-between items-center px-5 py-4 border-b">
-          <h3 className="font-medium">添加新面试问题</h3>
+          <h3 className="font-medium">添加新面试问题<span className="text-red-500">（全て項目は日本語で入力してください）</span></h3>
           <Button 
             variant="ghost" 
             size="icon" 
